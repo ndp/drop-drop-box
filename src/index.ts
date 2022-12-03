@@ -17,12 +17,15 @@ import {
   updateSearchPathDone
 } from './db.js'
 import { listFolderResult, selectFilesFromResult, setUpDropboxApi } from './dropbox.js'
+import { auth } from './google-photos.js'
 
 console.log(
   Chalk.greenBright(
     figlet.textSync('drop-drop-box', { horizontalLayout: 'full' })
   )
 );
+
+
 const command = new Command('drop-drop-box')
 command
   .description("CLI for transferring files from Dropbox to Google Photos")
@@ -34,6 +37,8 @@ command
 const dbPath = command.getOptionValue('database');
 
 (async function () {
+  console.log(await auth())
+
   const db = await Database.open(dbPath)
 
   await db.get<{ C: number }>('SELECT COUNT(*) AS C FROM dropbox_items')
@@ -71,13 +76,13 @@ const dbPath = command.getOptionValue('database');
     try {
       const result = await listFolderResult(path, cursor)
       const files = selectFilesFromResult(result)
-      db.transaction(async () => {
+      await db.transaction(async () => {
         if (result.has_more) {
           await updateSearchPathCursor(db, searchPathId, result.cursor)
         } else {
           await updateSearchPathDone(db, searchPathId)
         }
-        for (let f of files) insertFile(db, f)
+        for (let f of files) await insertFile(db, f)
         // console.log(files.map(f => f.name));
       })
     } catch (e) {
