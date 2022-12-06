@@ -1636,13 +1636,13 @@ split-on-first@^1.0.0:
   integrity sha512-43ZssAJaMusuKWL8sKUBQXHWOpq8d6CfN/u1p4gUzfJkM05C8rxTmYrkIPTXapZpORA6LkkzcUulJ8FqA7Uudw==
 
 sqlite-async@*:
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/sqlite-async/-/sqlite-async-1.1.5.tgz#6d6be6c0b03800bed311efaedebb42367e663f80"
-  integrity sha512-fgq22zIX4vml2K5isPYHDeQX1fzhmLTjXu0crC2lQRudyQnbxBLRx00sMylVFpTbqoCgNxbxrN6Qre28IiyM/Q==
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/sqlite-async/-/sqlite-async-1.2.0.tgz#d4d91d9221560bd588341dfa26917de355f72a48"
+  integrity sha512-gx9DUUA2UZzz/8Mh3qdA3RtTm8aJuF7dZgFdZ43WB29Iswdsp0KmPtem/2QDW8K4CrajR8yQ+gEniSFgolNscQ==
   dependencies:
-    sqlite3 "^5.0.11"
+    sqlite3 "^5.1.2"
 
-sqlite3@^5.0.11:
+sqlite3@^5.1.2:
   version "5.1.2"
   resolved "https://registry.yarnpkg.com/sqlite3/-/sqlite3-5.1.2.tgz#f50d5b1482b6972fb650daf6f718e6507c6cfb0f"
   integrity sha512-D0Reg6pRWAFXFUnZKsszCI67tthFD8fGPewRddDCX6w4cYwz3MbvuwRICbL+YQjBAh9zbw+lJ/V9oC8nG5j6eg==
