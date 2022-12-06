@@ -17,7 +17,7 @@ import {
   updateSearchPathDone
 } from './db.js'
 import { listFolderResult, selectFilesFromResult, setUpDropboxApi } from './dropbox.js'
-import { auth } from './google-photos.js'
+import { auth, listAlbums } from './google-photos.js'
 
 console.log(
   Chalk.greenBright(
@@ -37,7 +37,11 @@ command
 const dbPath = command.getOptionValue('database');
 
 (async function () {
-  console.log(await auth())
+  const authResult = await auth() as any
+  console.log({ authResult })
+
+  const albums = await listAlbums(authResult.tokens.access_token)
+  console.log(albums)
 
   const db = await Database.open(dbPath)
 

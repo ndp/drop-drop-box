@@ -1,4 +1,5 @@
-import { OAuth2Client } from "@buttercup/google-oauth2-client";
+import fetch from 'node-fetch'
+import { OAuth2Client } from './google-oauth2-client/index.js';
 import { exec } from 'child_process'
 import http, { IncomingMessage, ServerResponse } from 'http'
 
@@ -58,10 +59,20 @@ export async function auth () {
     }
 
 
-
   })
 
   const bearerToken = await promise
   console.log(JSON.stringify(bearerToken))
   return bearerToken
+}
+
+
+export async function listAlbums (bearerToken: string) {
+  const response = await fetch(
+    'https://photoslibrary.googleapis.com/v1/albums',
+    {
+      // Authorization: Bearer {token}
+      headers: { 'Authorization': `Bearer ${bearerToken}` }
+    })
+  return await response.json()
 }
