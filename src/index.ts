@@ -9,15 +9,17 @@ import figlet from 'figlet'
 import { Command } from 'commander'
 import { Database } from 'sqlite-async'
 import {
-  createTables, getPendingPathToSearch,
-  insertFile,
-  insertPathToSearch,
-  stats,
-  updateSearchPathCursor,
-  updateSearchPathDone
+  createTables, stats
 } from './db.js'
+import { insertDropboxItem } from './db/dropbox_items'
+import {
+  readOnePendingSearchPath,
+  insertSearchPath,
+  updateSearchPathCursor,
+  updateSearchPathStatus
+} from './db/search_paths'
 import { listFolderResult, selectFilesFromResult, setUpDropboxApi } from './dropbox.js'
-import { auth, listAlbums } from './google-photos.js'
+import { authGooglePhotos, listAlbums } from './google-photos.js'
 
 console.log(
   Chalk.greenBright(
@@ -37,7 +39,7 @@ command
 const dbPath = command.getOptionValue('database');
 
 (async function () {
-  const authResult = await auth() as any
+  const authResult = await authGooglePhotos() as any
   console.log({ authResult })
 
   const albums = await listAlbums(authResult.tokens.access_token)
@@ -54,15 +56,15 @@ const dbPath = command.getOptionValue('database');
 
   const path = command.getOptionValue('path')
   if (path)
-    await insertPathToSearch(db, path)
-  await insertPathToSearch(db, '/Tanyandy/Photos/2011/Originals/2011/Mar 29, 2011')
+    await insertSearchPath(db, path)
+  await insertSearchPath(db, '/Tanyandy/Photos/2011/Originals/2011/Mar 29, 2011')
 
   console.log('stats', await stats(db))
 
   setUpDropboxApi()
 
   for (let i = 0; i < 3; i++) {
-    const searchPath = await getPendingPathToSearch(db)
+    const searchPath = await readOnePendingSearchPath(db)
     if (searchPath)
       await enqueueDropboxFiles({
                             searchPathId: searchPath.ID,
@@ -84,9 +86,9 @@ const dbPath = command.getOptionValue('database');
         if (result.has_more) {
           await updateSearchPathCursor(db, searchPathId, result.cursor)
         } else {
-          await updateSearchPathDone(db, searchPathId)
+          await updateSearchPathStatus(db, searchPathId, 'DONE')
         }
-        for (let f of files) await insertFile(db, f)
+        for (let f of files) await insertDropboxItem(db, f)
         // console.log(files.map(f => f.name));
       })
     } catch (e) {

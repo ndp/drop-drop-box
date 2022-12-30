@@ -7,14 +7,9 @@ import {
   GOOGLE_OAUTH2_TOKEN_URL
 } from "./symbols.js";
 import {
-  GoogleToken
+  GoogleToken, GoogleTokenResponse
 } from "./types.js";
 
-
-export interface GoogleTokenResponse {
-  res: any;
-  tokens: GoogleToken;
-}
 
 export class OAuth2Client extends EventEmitter {
   protected _accessToken: string|null;
@@ -151,7 +146,7 @@ export class OAuth2Client extends EventEmitter {
   }
 
   private saveTokens (tokens: GoogleToken) {
-    if (tokens && tokens.expires_in) {
+    if (tokens?.expires_in) {
       tokens.expiry_date = new Date().getTime() + tokens.expires_in * 1000;
       delete tokens.expires_in;
     }

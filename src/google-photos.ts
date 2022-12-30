@@ -1,11 +1,14 @@
-import fetch from 'node-fetch'
+import fetch, { RequestInfo, RequestInit, Response } from 'node-fetch'
 import { OAuth2Client } from './google-oauth2-client/index.js';
 import { exec } from 'child_process'
 import http, { IncomingMessage, ServerResponse } from 'http'
 
 
 // was https://accounts.google.com/o/oauth2/auth
-const SCOPE = 'https://www.googleapis.com/auth/photoslibrary.readonly'
+const SCOPE = [
+  'https://www.googleapis.com/auth/photoslibrary.readonly',
+  'https://www.googleapis.com/auth/photoslibrary.appendonly'
+]
 
 const SETTINGS = {
   "installed": {
@@ -22,8 +25,9 @@ const SETTINGS = {
 
 
 const sessionState = Math.random().toString()
+let myFetch: ReturnType<typeof makeFetch>;
 
-export async function auth () {
+export async function authGooglePhotos () {
 
   const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID!,
@@ -53,6 +57,7 @@ export async function auth () {
       if (state !== sessionState) console.error('Invalid state!')
 
       const token = await client.exchangeAuthCodeForToken(code!)
+      myFetch = makeFetch(client)
       console.log({ token })
       resolve(token)
 
@@ -67,12 +72,26 @@ export async function auth () {
 }
 
 
+function makeFetch (client: OAuth2Client) {
+  return (url: RequestInfo, init?: RequestInit): Promise<Response> => {
+    const bearerToken = client.accessToken
+    init = {
+      ...init,
+      headers: {
+        ...(init || {}).headers,
+        'Authorization': `Bearer ${bearerToken}`
+      }
+    }
+    return fetch(url, init)
+  }
+}
+
 export async function listAlbums (bearerToken: string) {
-  const response = await fetch(
-    'https://photoslibrary.googleapis.com/v1/albums',
-    {
-      // Authorization: Bearer {token}
-      headers: { 'Authorization': `Bearer ${bearerToken}` }
-    })
+  const response = await myFetch(
+    'https://photoslibrary.googleapis.com/v1/albums')
   return await response.json()
 }
+
+const GOOGLE_PHOTOS_ALBUM_NAME = 'Imported from Dropbox'
+const GOOGLE_PHOTOS_ALBUM_ID = 'AIeID-riC2_qP0DgMlCcZrt6jDL8_05BaWyr2_Sj9w_24YbQlwtLdAh_KdJUZ_1vQpCvCxAFFwkb'
+

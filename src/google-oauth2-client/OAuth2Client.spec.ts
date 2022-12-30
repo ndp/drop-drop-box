@@ -1,7 +1,8 @@
-import { GoogleTokenResponse, OAuth2Client } from "./OAuth2Client";
+import { OAuth2Client } from "./OAuth2Client";
 import { expect } from 'chai'
 import sinon from 'sinon'
 import { GOOGLE_OAUTH2_AUTH_BASE_URL } from './symbols'
+import { GoogleTokenResponse } from './types'
 
 
 
