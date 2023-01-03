@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "description": "move drop box to google photos",
   "main": "./lib/index.js",
-  "type": "module",
   "bin": {},
   "scripts": {
     "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node --esm' src/index.ts",
     "create": "yarn run build && yarn run test",
     "build": "tsc -p .",
-    "test": "mocha ./src/**/*.spec.ts",
+    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha",
     "local": "sudo npm i -g && pizza"
   },
   "repository": "https://github.com/ndp/drop-drop-box",

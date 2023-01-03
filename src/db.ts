@@ -1,6 +1,6 @@
-import { Database } from '../../sqlite-async'
-import { createTableDropboxItems, dropboxItemsStats } from './db/dropbox_items'
-import { createTableSearchPaths, readSearchPathStats } from './db/search_paths'
+import { Database } from 'sqlite-async'
+import { createTableDropboxItems, dropboxItemsStats } from './db/dropbox_items.js'
+import { createTableSearchPaths, readSearchPathStats } from './db/search_paths.js'
 
 export async function createTables (db: Database) {
   await createTableSearchPaths(db)

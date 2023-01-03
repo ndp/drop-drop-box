@@ -5,10 +5,10 @@ import {
   ERR_REFRESH_FAILED,
   GOOGLE_OAUTH2_AUTH_BASE_URL,
   GOOGLE_OAUTH2_TOKEN_URL
-} from "./symbols.js";
+} from "./symbols";
 import {
   GoogleToken, GoogleTokenResponse
-} from "./types.js";
+} from "./types";
 
 
 export class OAuth2Client extends EventEmitter {

@@ -1,5 +1,5 @@
 import { file_properties } from 'dropbox/types/dropbox_types'
-import { Database } from '../../../sqlite-async'
+import { Database } from 'sqlite-async'
 
 
 type Status = 'ENQUEUED' | 'DOWNLOADING' | 'DONE'

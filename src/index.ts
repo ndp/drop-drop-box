@@ -11,13 +11,13 @@ import { Database } from 'sqlite-async'
 import {
   createTables, stats
 } from './db.js'
-import { insertDropboxItem } from './db/dropbox_items'
+import { insertDropboxItem } from './db/dropbox_items.js'
 import {
   readOnePendingSearchPath,
   insertSearchPath,
   updateSearchPathCursor,
   updateSearchPathStatus
-} from './db/search_paths'
+} from './db/search_paths.js'
 import { listFolderResult, selectFilesFromResult, setUpDropboxApi } from './dropbox.js'
 import { authGooglePhotos, listAlbums } from './google-photos.js'
 

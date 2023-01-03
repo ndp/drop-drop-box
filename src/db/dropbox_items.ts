@@ -1,4 +1,4 @@
-import { Database } from '../../../sqlite-async'
+import { Database } from 'sqlite-async'
 import { DropboxFile } from '../dropbox'
 
 interface Count {

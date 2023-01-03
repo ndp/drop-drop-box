@@ -1,7 +1,6 @@
 {
   "spec": "src/**/*.spec.ts",
   "require": [
-
     "ts-node/register"
   ],
   "extension": "spec.ts",
@@ -9,8 +8,6 @@
     "ts"
   ],
   "node-option": [
-    "experimental-specifier-resolution=node",
-    "loader=ts-node/esm"
   ],
   "recursive": true,
   "reporter": "spec",
