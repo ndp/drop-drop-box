@@ -5,7 +5,6 @@ import { createTableSearchPaths, readSearchPathStats } from './db/search_paths.j
 export async function createTables (db: Database) {
   await createTableSearchPaths(db)
   await createTableDropboxItems(db)
-
 }
 
 export async function stats (db: Database) {
