@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import { stringify } from "query-string";
+import {stringify} from "query-string";
 import EventEmitter from "eventemitter3";
 import {
   ERR_REFRESH_FAILED,
@@ -7,42 +7,24 @@ import {
   GOOGLE_OAUTH2_TOKEN_URL
 } from "./symbols";
 import {
-  GoogleToken, GoogleTokenResponse
+  GoogleToken, GoogleTokenResponse, TokenStore
 } from "./types";
 
 
+const REFRESH_THRESHOLD_MS = 60 * 1000
+
 export class OAuth2Client extends EventEmitter {
-  protected _accessToken: string|null;
-  protected _refreshToken: string|null;
+
   protected _refreshTokenPromises: Map<string, Promise<GoogleTokenResponse>> = new Map();
 
-  constructor (protected _clientID: string,
-               protected _clientSecret: string,
-               protected _redirectURL: string) {
+  constructor(protected _clientID: string,
+              protected _clientSecret: string,
+              protected _redirectURL: string,
+              public tokenStore: TokenStore) {
     super();
-    this._accessToken = null;
-    this._refreshToken = null;
   }
 
-  get accessToken () {
-    return this._accessToken;
-  }
-
-  get refreshToken () {
-    return this._refreshToken;
-  }
-
-  async _request ({ url, ...rest }: any) {
-    // this is replacing cowl lib
-    const response = await fetch(url, rest)
-    return {
-      status: response.status,
-      statusText: response.statusText,
-      data: await response.json()
-    }
-  }
-
-  generateAuthUrl (config: {
+  generateAuthUrl(config: {
     access_type: string;
     prompt: string;
     response_type?: string;
@@ -60,30 +42,30 @@ export class OAuth2Client extends EventEmitter {
       scope,
       prompt,
       response_type,
-      client_id:    this._clientID,
+      client_id: this._clientID,
       redirect_uri: this._redirectURL
     };
     return `${GOOGLE_OAUTH2_AUTH_BASE_URL}?${stringify(opts)}`;
   }
 
-  async exchangeAuthCodeForToken (authCode: string): Promise<GoogleTokenResponse> {
+  async exchangeAuthCodeForToken(authCode: string): Promise<GoogleTokenResponse> {
     const decodedAuthCode = decodeURIComponent(authCode);
     const data = {
-      code:          decodedAuthCode,
-      client_id:     this._clientID,
+      code: decodedAuthCode,
+      client_id: this._clientID,
       client_secret: this._clientSecret,
-      redirect_uri:  this._redirectURL,
-      grant_type:    "authorization_code"
+      redirect_uri: this._redirectURL,
+      grant_type: "authorization_code"
     };
-    const res = await this._request({
-                                      url:     GOOGLE_OAUTH2_TOKEN_URL,
-                                      method:  "POST",
-                                      body:    stringify(data),
-                                      headers: {
-                                        "Content-Type": "application/x-www-form-urlencoded"
-                                      }
-                                    });
-    const { data: tokens } = res;
+    const res = await fetcher({
+      url: GOOGLE_OAUTH2_TOKEN_URL,
+      method: "POST",
+      body: stringify(data),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      }
+    });
+    const {data: tokens} = res;
     this.saveTokens(tokens)
     return {
       tokens,
@@ -91,13 +73,28 @@ export class OAuth2Client extends EventEmitter {
     };
   }
 
-  refreshAccessToken (refreshToken?: string): Promise<GoogleTokenResponse> {
-    if (!refreshToken) {
-      return this.refreshAccessTokenNoCache(refreshToken);
-    }
+  hasValidRefreshToken(): boolean {
+    return !!this.tokenStore.refresh_token &&
+      !!this.tokenStore.expiry_date &&
+      this.tokenStore.expiry_date > new Date().getTime()
+  }
+
+  isTimeToRefresh(): boolean {
+    return this.hasValidRefreshToken() &&
+      this.tokenStore!.expiry_date! < (new Date().getTime() + REFRESH_THRESHOLD_MS)
+  }
+
+  refreshAccessToken(): Promise<GoogleTokenResponse> {
+
+    if (!this.hasValidRefreshToken())
+      throw "No valid refresh token"
+
+    const refreshToken = this.tokenStore.refresh_token
+
     if (this._refreshTokenPromises.has(refreshToken)) {
       return this._refreshTokenPromises.get(refreshToken)!;
     }
+
     const refreshTokenPromise = this
       .refreshAccessTokenNoCache(refreshToken)
       .then(rt => {
@@ -112,31 +109,31 @@ export class OAuth2Client extends EventEmitter {
     return refreshTokenPromise;
   }
 
-  async refreshAccessTokenNoCache (
-    refreshToken?: string
+  private async refreshAccessTokenNoCache(
+    refreshToken: string
   ): Promise<GoogleTokenResponse> {
     const data = {
       refresh_token: refreshToken,
-      client_id:     this._clientID,
+      client_id: this._clientID,
       client_secret: this._clientSecret,
-      grant_type:    "refresh_token"
+      grant_type: "refresh_token"
     };
-    const res = await this._request({
-                                      url:            GOOGLE_OAUTH2_TOKEN_URL,
-                                      method:         "POST",
-                                      body:           stringify(data),
-                                      headers:        {
-                                        "Content-Type": "application/x-www-form-urlencoded"
-                                      },
-                                      validateStatus: () => true
-                                    });
-    const { data: tokens, status, statusText } = res;
+    const res = await fetcher({
+      url: GOOGLE_OAUTH2_TOKEN_URL,
+      method: "POST",
+      body: stringify(data),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      validateStatus: () => true
+    });
+    const {data: tokens, status, statusText} = res;
     if (status >= 400 || status < 200) {
       throw new Error(`Bad refresh response ${JSON.stringify({
-                                                               code: ERR_REFRESH_FAILED,
-                                                               status,
-                                                               statusText
-                                                             })}`);
+        code: ERR_REFRESH_FAILED,
+        status,
+        statusText
+      })}`);
     }
     this.saveTokens(tokens)
     return {
@@ -145,13 +142,23 @@ export class OAuth2Client extends EventEmitter {
     };
   }
 
-  private saveTokens (tokens: GoogleToken) {
+  private saveTokens(tokens: GoogleToken) {
     if (tokens?.expires_in) {
       tokens.expiry_date = new Date().getTime() + tokens.expires_in * 1000;
       delete tokens.expires_in;
     }
-    this._accessToken = tokens.access_token;
-    this._refreshToken = tokens.refresh_token;
+    this.tokenStore.save(tokens)
     this.emit("tokens", tokens);
+  }
+}
+
+
+async function fetcher({url, ...rest}: any) {
+  // this is replacing cowl lib
+  const response = await fetch(url, rest)
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    data: await response.json()
   }
 }

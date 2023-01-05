@@ -9,3 +9,9 @@ export interface GoogleTokenResponse {
   res: any;
   tokens: GoogleToken;
 }
+
+
+type Storable = Pick<GoogleToken, 'access_token'|'refresh_token'|'expiry_date'>
+export interface TokenStore extends Storable {
+  save: (tokens: Storable) => void;
+}
