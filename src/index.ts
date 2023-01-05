@@ -2,106 +2,151 @@
 // Object.defineProperty(exports, "__esModule", { value: true })
 
 import * as dotenv from 'dotenv'
-
-dotenv.config()
 import Chalk from 'chalk'
 import figlet from 'figlet'
-import { Command } from 'commander'
-import { Database } from 'sqlite-async'
+import {Command} from 'commander'
+import {Database} from 'sqlite-async'
+import {createTables, stats} from './db'
+import {authGooglePhotos, listAlbums} from './google-photos'
 import {
-  createTables, stats
-} from './db.js'
-import { insertDropboxItem } from './db/dropbox_items.js'
-import {
-  readOnePendingSearchPath,
   insertSearchPath,
+  readOnePendingSearchPath,
+  readSeachPaths,
   updateSearchPathCursor,
   updateSearchPathStatus
-} from './db/search_paths.js'
-import { listFolderResult, selectFilesFromResult, setUpDropboxApi } from './dropbox.js'
-import { authGooglePhotos, listAlbums } from './google-photos.js'
+} from "./db/search_paths";
+import {lpad} from "./util";
+import {listFolderResult, selectFilesFromResult, setUpDropboxApi} from "./dropbox";
+import {insertDropboxItem} from "./db/dropbox_items";
+
+dotenv.config()
 
 console.log(
   Chalk.greenBright(
-    figlet.textSync('drop-drop-box', { horizontalLayout: 'full' })
+    figlet.textSync('drop-drop-box', {horizontalLayout: 'full'})
   )
 );
 
 
+export const status = new Command('status')
+  .description('show current status')
+  .action(async () => {
+    console.log('status!')
+    const db = await getDatabase()
+    console.log('stats', await stats(db))
+  })
+
+
+const google = new Command('google')
+  .description('google stuff')
+  .action(async () => {
+    const authResult = await authGooglePhotos() as any
+    console.log({authResult})
+
+    const albums = await listAlbums(authResult.tokens.access_token)
+    console.log(albums)
+  })
+
+
+
+export const add = new Command('add')
+  .description('add DropBox path to search for images')
+  .argument('paths...')
+  .action(async (paths) => {
+    const db = await getDatabase()
+
+    for (const path of paths)
+      await insertSearchPath(db, decodeURIComponent(path))
+//    await insertSearchPath(db, '/Tanyandy/Photos/2011/Originals/2011/Mar 29, 2011')
+  })
+export const folders = new Command('folders')
+  .description('show Dropbox folders')
+  .action(async () => {
+    const db = await getDatabase()
+    const searchPaths = await readSeachPaths(db)
+    for (const p of searchPaths)
+      console.log(`${lpad(p.status, 15)}   ${p.path}`)
+  })
+export const discover = new Command('discover')
+  .argument('[n]', 'number of Dropbox folders to scan (default 1)')
+  .description('discover new Dropbox files in added folders')
+  .action(async (n) => {
+    setUpDropboxApi()
+
+    if (!n) n = 1
+
+    const db = await getDatabase()
+
+    try {
+      for (let i = 0; i < n; i++) {
+        const searchPath = await readOnePendingSearchPath(db)
+        if (searchPath)
+          await enqueueDropboxFiles({
+            searchPathId: searchPath.id,
+            path: searchPath.path,
+            cursor: searchPath.cursor
+          })
+      }
+    } catch (err) {
+      console.error(JSON.stringify(err))
+    }
+
+    async function enqueueDropboxFiles({
+                                         searchPathId,
+                                         path,
+                                         cursor
+                                       }: { searchPathId: number, path: string, cursor: string }) {
+      console.log('--> enqueueDropboxFiles', {path, cursor, searchPathId})
+      try {
+        const result = await listFolderResult(path, cursor)
+        const files = selectFilesFromResult(result)
+        await db.transaction(async () => {
+          await updateSearchPathCursor(db, searchPathId, result.cursor)
+          if (result.has_more) {
+            await updateSearchPathStatus(db, searchPathId, 'DOWNLOADING')
+          } else {
+            await updateSearchPathStatus(db, searchPathId, 'DONE')
+          }
+          for (let f of files) await insertDropboxItem(db, f)
+          // console.log(files.map(f => f.name));
+        })
+      } catch (e) {
+        if ((e as { status: number }).status === 409 &&
+          (e as { error: { error_summary: string } }).error.error_summary.startsWith('path/not_found')) {
+          console.error('Path not found, marking as failed')
+          await updateSearchPathStatus(db, searchPathId, 'FAILED')
+        } else
+          console.error("error in enqueueDropboxFiles: ", e)
+      }
+    }
+  })
+
 const command = new Command('drop-drop-box')
 command
   .description("CLI for transferring files from Dropbox to Google Photos")
-  .option('-d, --database', 'SQLLite3 database path', './dropbox-db.sqlite3')
-  .option('-p, --path <path>', 'Add the specified path within DropBox')
-  // .option('-C, --no-cheese', 'You do not want any cheese')
+  .option('-db, --database <db>', 'SQLLite3 database path', './dropbox-db.sqlite3')
+  .option('-V, --verbose', 'Lotsa logging', false)
+  .addCommand(status)
+  .addCommand(add)
+  .addCommand(discover)
+  .addCommand(folders)
+  .addCommand(google)
   .parse(process.argv);
 
-const dbPath = command.getOptionValue('database');
 
-(async function () {
-  const authResult = await authGooglePhotos() as any
-  console.log({ authResult })
-
-  const albums = await listAlbums(authResult.tokens.access_token)
-  console.log(albums)
-
+export async function getDatabase() {
+  const dbPath = command.getOptionValue('database');
   const db = await Database.open(dbPath)
-
   await db.get<{ C: number }>('SELECT COUNT(*) AS C FROM dropbox_items')
-          .then((r) => console.log(`found ${JSON.stringify(r.C)} items`))
-          .catch(async () => {
-            console.log('creating tables')
-            await createTables(db)
-          })
+    .then((r) => console.log(`Using database with ${JSON.stringify(r.C)} items`))
+    .catch(async () => {
+      console.log('creating tables')
+      await createTables(db)
+    })
+  return db
+}
 
-  const path = command.getOptionValue('path')
-  if (path)
-    await insertSearchPath(db, path)
-  await insertSearchPath(db, '/Tanyandy/Photos/2011/Originals/2011/Mar 29, 2011')
 
-  console.log('stats', await stats(db))
-
-  setUpDropboxApi()
-
-  for (let i = 0; i < 3; i++) {
-    const searchPath = await readOnePendingSearchPath(db)
-    if (searchPath)
-      await enqueueDropboxFiles({
-                            searchPathId: searchPath.ID,
-                            path:         searchPath.path,
-                            cursor:       searchPath.cursor
-                          })
-  }
-
-  async function enqueueDropboxFiles ({
-                                        searchPathId,
-                                        path,
-                                        cursor
-                                      }: { searchPathId: number, path: string, cursor: string }) {
-    console.log('--> enqueueDropboxFiles', { path, cursor })
-    try {
-      const result = await listFolderResult(path, cursor)
-      const files = selectFilesFromResult(result)
-      await db.transaction(async () => {
-        if (result.has_more) {
-          await updateSearchPathCursor(db, searchPathId, result.cursor)
-        } else {
-          await updateSearchPathStatus(db, searchPathId, 'DONE')
-        }
-        for (let f of files) await insertDropboxItem(db, f)
-        // console.log(files.map(f => f.name));
-      })
-    } catch (e) {
-      console.error("error in enqueueDropboxFiles: ", e)
-    }
-  }
-
-  // await enqueueDropboxFiles('/Tanyandy/Photos/Baby')
-  // await enqueueDropboxFiles('Tanyandy/Photos/2011/Originals/2011/Mar 29, 2011')
-  // await enqueueDropboxFiles('/Tanyandy/Photos/2011/Originals/2011/Mar%2029%2C%202011')
-  process.exit(0)
-})()
-// dbx.filesDownload
 // .cursor
 // .has_more
 /*

@@ -1,5 +1,5 @@
 import fetch, { RequestInfo, RequestInit, Response } from 'node-fetch'
-import { OAuth2Client } from './google-oauth2-client/index.js';
+import { OAuth2Client } from './google-oauth2-client/index';
 import { exec } from 'child_process'
 import http, { IncomingMessage, ServerResponse } from 'http'
 
@@ -45,7 +45,7 @@ export async function authGooglePhotos () {
 
     async function requestListener (req: IncomingMessage, res: ServerResponse) {
       res.writeHead(200);
-      res.end('Close your browser to proceed.');
+      res.end('<h1>Close your browser to proceed.</h1>');
 
       const url = new URL('http://localhost' + req.url)
       if (url.pathname !== '/callback') return

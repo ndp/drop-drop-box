@@ -2,7 +2,7 @@ import {Database} from "sqlite-async";
 import {
   createTableSearchPaths,
   insertSearchPath,
-  readOnePendingSearchPath, readOneSearchPath, readSearchPathStats,
+  readOnePendingSearchPath, readOneSearchPath, readSeachPaths, readSearchPathStats,
   updateSearchPathCursor, updateSearchPathStatus
 } from './search_paths'
 import {expect} from "chai";
@@ -42,6 +42,11 @@ describe('search_paths', () => {
     red = await readOneSearchPath(db, id)
     expect(red.status).to.equal('DOWNLOADING')
 
+    await updateSearchPathStatus(db, id, 'FAILED')
+
+    red = await readOneSearchPath(db, id)
+    expect(red.status).to.equal('FAILED')
+
     await updateSearchPathStatus(db, id, 'DONE')
 
     red = await readOneSearchPath(db, id)
@@ -66,6 +71,17 @@ describe('search_paths', () => {
     expect(red.path).to.equal('/foo/baz')
     expect(red.status).to.equal('ENQUEUED')
     expect(red.cursor).to.equal(null)
+  })
+
+  specify('readSeachPaths', async () => {
+    let p = await readSeachPaths(db)
+    expect(p).to.deep.equal([])
+
+    const a = await insertSearchPath(db, '/foo/bar/a')
+    const b = await insertSearchPath(db, '/foo/bar/b')
+    const c = await insertSearchPath(db, '/foo/bar/c')
+    p = await readSeachPaths(db)
+    expect(p.length).to.equal(3)
   })
 
   specify('readSearchPathStats', async () => {

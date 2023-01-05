@@ -1,7 +1,7 @@
 import { Dropbox, DropboxResponse, files } from 'dropbox'
 import FileMetadataReference = files.FileMetadataReference
 
-export type DropboxFile = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
+export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 
 let dropbox: Dropbox;
 
@@ -27,7 +27,7 @@ export async function listFolderResult (path: string, cursor: string | null) {
   return response.result
 }
 
-export function selectFilesFromResult (result: files.ListFolderResult): Array<DropboxFile> {
+export function selectFilesFromResult (result: files.ListFolderResult): Array<DropboxFileImport> {
   return (
     result
       .entries

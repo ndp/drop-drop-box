@@ -2,10 +2,11 @@ import {file_properties} from 'dropbox/types/dropbox_types'
 import {Database} from 'sqlite-async'
 
 
-type Status = 'ENQUEUED' | 'DOWNLOADING' | 'DONE'
+type Status = 'ENQUEUED' | 'DOWNLOADING' | 'DONE' | 'FAILED'
 
 export type SearchPath = {
-  ID: number,
+  ID?: number
+  id: number,
   path: string
   status: Status,
   cursor: string,
@@ -20,7 +21,7 @@ interface Count {
 
 export async function createTableSearchPaths(db: Database) {
   await db.exec(`CREATE TABLE search_paths (
-                           ID INTEGER PRIMARY KEY,
+                           id INTEGER PRIMARY KEY,
                            path varchar(1024) NOT NULL UNIQUE,
                            status varchar(20) NOT NULL DEFAULT "ENQUEUED",
                            cursor varchar(255) DEFAULT NULL,
@@ -32,7 +33,7 @@ export async function createTableSearchPaths(db: Database) {
 export function insertSearchPath(db: Database, path: string): Promise<number | null> {
   return db.run(`insert into search_paths (path) values ($1);`, [path])
     .then(result => {
-      console.log(`added one path (${JSON.stringify(result)})`);
+      console.log(`  Added one folder (${path})`);
       return result.lastID
     })
     .catch(err => {
@@ -55,6 +56,7 @@ export async function updateSearchPathCursor(
 }
 
 export async function updateSearchPathStatus(db: Database, searchPathId: number, newStatus: Status) {
+  console.log(`updating search path status #${searchPathId} to ${newStatus}`)
   return await db.run(
     'UPDATE search_paths ' +
     'SET status=? ' +
@@ -67,9 +69,14 @@ export async function readOneSearchPath(db: Database, searchPathId: number) {
 
 
 export async function readOnePendingSearchPath(db: Database) {
-  return await db.get<SearchPath>('SELECT * FROM search_paths WHERE status != "DONE" ORDER BY cursor DESC, RANDOM()')
+  const searchPath = await db.get<SearchPath>('SELECT * FROM search_paths WHERE status != "DONE" AND status != "FAILED" ORDER BY cursor DESC, RANDOM()');
+  if (searchPath.ID) searchPath.id = searchPath.ID
+  return searchPath
 }
 
+export async function readSeachPaths(db: Database) {
+  return await db.all<SearchPath>('SELECT * FROM search_paths ORDER BY status, path')
+}
 
 export async function readSearchPathStats(db: Database) {
   return {
