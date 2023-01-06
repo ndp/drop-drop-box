@@ -3,6 +3,7 @@ import { expect } from 'chai'
 import sinon from 'sinon'
 import { GOOGLE_OAUTH2_AUTH_BASE_URL } from './symbols'
 import { GoogleTokenResponse } from './types'
+import {InMemoryTokenStore} from "./InMemoryTokenStore";
 
 
 
@@ -11,9 +12,10 @@ describe("OAuth2Client", function() {
     this.client = new OAuth2Client(
       "clientid",
       "clientsecret",
-      "https://website.com"
+      "https://website.com",
+      new InMemoryTokenStore()
     );
-    sinon.stub(this.client, "_request").returns(Promise.resolve({
+    sinon.stub(this.client, "fetcher").returns(Promise.resolve({
                                                                   data: {
                                                                     access_token: "at",
                                                                     refresh_token: "rt",
@@ -97,7 +99,7 @@ describe("OAuth2Client", function() {
     it("decodes auth code first before stringifying to be sent in request", function() {
       const authCode = "4%2FswEmlFcE4vP6BCXY_xmc4kUUgzB3uqB_b9uVLisqrr6-ADVVQEg7a6LojiIkyWq1JY4QhAGWbe5ektjTO";
       this.client.exchangeAuthCodeForToken(authCode);
-      expect(this.client._request.getCall(0).args[0].body).to.include(authCode);
+      expect(this.client.fetcher.getCall(0).args[0].body).to.include(authCode);
     });
   })
 });

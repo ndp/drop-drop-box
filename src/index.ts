@@ -7,7 +7,7 @@ import figlet from 'figlet'
 import {Command} from 'commander'
 import {Database} from 'sqlite-async'
 import {createTables, stats} from './db'
-import {authGooglePhotos, listAlbums, listMediaItems} from './google-photos'
+import {listAlbums, listMediaItems, setUpGoogleOAuth} from './google-photos'
 import {
   insertSearchPath,
   readOnePendingSearchPath,
@@ -40,8 +40,8 @@ export const status = new Command('status')
 const google = new Command('google')
   .description('google stuff')
   .action(async () => {
-    const authResult = await authGooglePhotos() as any
-    console.log({authResult})
+
+    setUpGoogleOAuth()
 
     const mediaItems = await listMediaItems()
     console.log(JSON.stringify({mediaItems}))

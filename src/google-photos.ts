@@ -1,7 +1,8 @@
-import fetch, { RequestInfo, RequestInit, Response } from 'node-fetch'
+import fetch, {RequestInfo, RequestInit, Response} from 'node-fetch'
 import {GoogleToken, OAuth2Client, TokenStore} from './google-oauth2-client/index';
-import { exec } from 'child_process'
-import http, { IncomingMessage, ServerResponse } from 'http'
+import {exec} from 'child_process'
+import http, {IncomingMessage, ServerResponse} from 'http'
+import {InMemoryTokenStore} from "./google-oauth2-client/InMemoryTokenStore";
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -12,46 +13,21 @@ const SCOPE = [
 
 const SETTINGS = {
   "installed": {
-    "client_id":                   "721958700054-ecgdcgbgorr4e4tpmthj6dd8gfbgauj9.apps.googleusercontent.com",
-    "project_id":                  "dropdropbox-1669873149217",
-    "auth_uri":                    "https://accounts.google.com/o/oauth2/auth",
-    "token_uri":                   "https://oauth2.googleapis.com/token",
+    "client_id": "721958700054-ecgdcgbgorr4e4tpmthj6dd8gfbgauj9.apps.googleusercontent.com",
+    "project_id": "dropdropbox-1669873149217",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "redirect_uris":               ["http://localhost"]
+    "redirect_uris": ["http://localhost"]
   }
 }.installed
 
 //TOKEN_URL = 'https://www.googleapis.com/oauth2/v4/token'
 
-
-class InMemoryTokenStore implements TokenStore  {
-
-  _tokens: GoogleToken|null = null
-
-  get access_token() {
-    return this._tokens?.access_token ?? ''
-  }
-
-  get refresh_token() {
-    return this._tokens?.refresh_token ?? ''
-  }
-
-  get expiry_date() {
-    return this._tokens?.expiry_date ?? 0
-  }
-
-  save(tokens: GoogleToken): void {
-    this._tokens = tokens
-  }
-}
-
 const tokenStore = new InMemoryTokenStore()
 
 
-const sessionState = Math.random().toString()
-let myFetch: ReturnType<typeof makeFetch>;
-
-export async function authGooglePhotos () {
+export function makeAutoRefreshFetch() {
 
   const client = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID!,
@@ -60,58 +36,65 @@ export async function authGooglePhotos () {
     tokenStore
   );
 
-  const authURL = client.generateAuthUrl(
-    { access_type: 'offline', prompt: 'consent', scope: SCOPE });
-  exec(`open "${authURL}"`)
 
-  const promise = new Promise(resolve => {
-    http.createServer(requestListener).listen(9999);
+  return async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
 
+    if (client.hasValidRefreshToken()
+      && client.isTimeToRefresh())
+      await client.refreshAccessToken()
 
-    async function requestListener (req: IncomingMessage, res: ServerResponse) {
-      res.writeHead(200);
-      res.end('<h1>Close your browser to proceed.</h1>');
+    if (!client.bearerToken)
+      await choreographNewLogin()
 
-      const url = new URL('http://localhost' + req.url)
-      if (url.pathname !== '/callback') return
-
-      const code = url.searchParams.get('code')
-      const state = url.searchParams.get('state')
-      console.log('searchParams: ', { code, state })
-
-      if (state !== sessionState) console.error('Invalid state!')
-
-      const token = await client.exchangeAuthCodeForToken(code!)
-      myFetch = makeFetch(client)
-      console.log({ token })
-      resolve(token)
-
-    }
-
-
-  })
-
-  const bearerToken = await promise
-  console.log(JSON.stringify(bearerToken))
-  return bearerToken
-}
-
-
-function makeFetch (client: OAuth2Client) {
-  return (url: RequestInfo, init?: RequestInit): Promise<Response> => {
-    const bearerToken = client.tokenStore.access_token
     init = {
       ...init,
       headers: {
         ...(init || {}).headers,
-        'Authorization': `Bearer ${bearerToken}`
+        'Authorization': `Bearer ${(client.bearerToken)}`
       }
     }
     return fetch(url, init)
   }
+
+  async function choreographNewLogin() {
+
+    const authURL = client.generateAuthUrl(
+      {access_type: 'offline', prompt: 'consent', scope: SCOPE});
+
+    console.log({authURL})
+    exec(`open "${authURL}"`)
+
+    return new Promise(resolve => {
+      const server = http.createServer(requestListener).listen(9999);
+
+      async function requestListener(req: IncomingMessage, res: ServerResponse) {
+
+        server.emit('close')
+
+        res.writeHead(200);
+        res.end('<h1>Close your browser to proceed.</h1>');
+
+        const url = new URL('http://localhost' + req.url)
+        if (url.pathname !== '/callback') return
+
+        const code = url.searchParams.get('code')
+        console.log('searchParams: ', {code})
+
+        const token = await client.exchangeAuthCodeForToken(code!)
+        resolve(token)
+      }
+    })
+  }
 }
 
-export async function listAlbums (bearerToken: string) {
+
+let myFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
+
+export function setUpGoogleOAuth() {
+  myFetch = makeAutoRefreshFetch();
+}
+
+export async function listAlbums(bearerToken: string) {
   const response = await myFetch(
     'https://photoslibrary.googleapis.com/v1/albums')
   return await response.json()

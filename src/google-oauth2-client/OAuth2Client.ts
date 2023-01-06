@@ -24,6 +24,10 @@ export class OAuth2Client extends EventEmitter {
     super();
   }
 
+  get bearerToken() {
+    return this.tokenStore.access_token
+  }
+
   generateAuthUrl(config: {
     access_type: string;
     prompt: string;
@@ -57,7 +61,7 @@ export class OAuth2Client extends EventEmitter {
       redirect_uri: this._redirectURL,
       grant_type: "authorization_code"
     };
-    const res = await fetcher({
+    const res = await this.fetcher({
       url: GOOGLE_OAUTH2_TOKEN_URL,
       method: "POST",
       body: stringify(data),
@@ -118,7 +122,7 @@ export class OAuth2Client extends EventEmitter {
       client_secret: this._clientSecret,
       grant_type: "refresh_token"
     };
-    const res = await fetcher({
+    const res = await this.fetcher({
       url: GOOGLE_OAUTH2_TOKEN_URL,
       method: "POST",
       body: stringify(data),
@@ -150,15 +154,17 @@ export class OAuth2Client extends EventEmitter {
     this.tokenStore.save(tokens)
     this.emit("tokens", tokens);
   }
-}
 
 
-async function fetcher({url, ...rest}: any) {
-  // this is replacing cowl lib
-  const response = await fetch(url, rest)
-  return {
-    status: response.status,
-    statusText: response.statusText,
-    data: await response.json()
+  async fetcher({url, ...rest}: any) {
+    // this is replacing cowl lib
+    const response = await fetch(url, rest)
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      data: await response.json()
+    }
   }
+
 }
+
