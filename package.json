@@ -41,6 +41,6 @@
     "eventemitter3": "^5.0.0",
     "figlet": "*",
     "query-string": "^7.1.3",
-    "sqlite-async": "*"
+    "sqlite-async": "ndp/sqlite-async#13-typescript"
   }
 }

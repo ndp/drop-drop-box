@@ -1635,17 +1635,16 @@ split-on-first@^1.0.0:
   resolved "https://registry.yarnpkg.com/split-on-first/-/split-on-first-1.1.0.tgz#f610afeee3b12bce1d0c30425e76398b78249a5f"
   integrity sha512-43ZssAJaMusuKWL8sKUBQXHWOpq8d6CfN/u1p4gUzfJkM05C8rxTmYrkIPTXapZpORA6LkkzcUulJ8FqA7Uudw==
 
-sqlite-async@*:
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/sqlite-async/-/sqlite-async-1.1.5.tgz#6d6be6c0b03800bed311efaedebb42367e663f80"
-  integrity sha512-fgq22zIX4vml2K5isPYHDeQX1fzhmLTjXu0crC2lQRudyQnbxBLRx00sMylVFpTbqoCgNxbxrN6Qre28IiyM/Q==
+sqlite-async@ndp/sqlite-async#13-typescript:
+  version "1.2.0"
+  resolved "https://codeload.github.com/ndp/sqlite-async/tar.gz/8d4dfa58e2a823b6242ed6f05c8ce35ed077e842"
   dependencies:
-    sqlite3 "^5.0.11"
+    sqlite3 "^5.1.2"
 
-sqlite3@^5.0.11:
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/sqlite3/-/sqlite3-5.1.2.tgz#f50d5b1482b6972fb650daf6f718e6507c6cfb0f"
-  integrity sha512-D0Reg6pRWAFXFUnZKsszCI67tthFD8fGPewRddDCX6w4cYwz3MbvuwRICbL+YQjBAh9zbw+lJ/V9oC8nG5j6eg==
+sqlite3@^5.1.2:
+  version "5.1.4"
+  resolved "https://registry.yarnpkg.com/sqlite3/-/sqlite3-5.1.4.tgz#35f83d368963168b324ad2f0fffce09f3b8723a7"
+  integrity sha512-i0UlWAzPlzX3B5XP2cYuhWQJsTtlMD6obOa1PgeEQ4DHEXUuyJkgv50I3isqZAP5oFc2T8OFvakmDh2W6I+YpA==
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.0"
     node-addon-api "^4.2.0"
