@@ -33,14 +33,19 @@ export function makeAuthyFetch({
     }
   );
 
+  // Return a "fetch"-like function
   return async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
+    // Refresh if necessary (the "auth-refresh")
     if (client.hasValidRefreshToken()
       && client.isTimeToRefresh())
       await client.refreshAccessToken()
 
+    // ... or auth if necessary
+    // TODO more scopes
     if (!client.bearerToken)
       await choreographNewLogin()
 
+    // And now make the "fetch" call
     init = {
       ...init,
       headers: {
