@@ -18,7 +18,7 @@ import {
 import {lpad} from "./util";
 import {getStream, listFolderResult, selectFilesFromResult, setUpDropboxApi} from "./dropbox";
 import {insertDropboxItem, readOneDropboxItemById} from "./db/dropbox_items";
-import {SqliteTokenStore} from "././oauth2-client/SqliteTokenStore";
+import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
 
 dotenv.config()
 

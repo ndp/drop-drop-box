@@ -1,5 +1,6 @@
 import {Database} from 'sqlite-async'
-import {Storable, TokenStore} from "./index";
+import {Storable} from "../index";
+import {TokenStore} from "./index";
 
 
 export class SqliteTokenStore implements TokenStore {
@@ -57,6 +58,10 @@ export class SqliteTokenStore implements TokenStore {
     this._access_token = record.access_token
     this._refresh_token = record.refresh_token
     this._expiry_date = record.expiry_date
+  }
+
+  async resetTokens() {
+    await this.db.run('DELETE FROM oauth_tokens')
   }
 
 }

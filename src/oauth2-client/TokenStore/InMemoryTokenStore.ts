@@ -1,4 +1,5 @@
-import {GoogleToken, TokenStore} from "./types";
+import {GoogleToken} from "../types";
+import {TokenStore} from './index'
 
 export class InMemoryTokenStore implements TokenStore {
 

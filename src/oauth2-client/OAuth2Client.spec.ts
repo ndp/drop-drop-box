@@ -2,7 +2,7 @@ import {OAuth2Client} from "./OAuth2Client";
 import {expect} from 'chai'
 import sinon from 'sinon'
 import {GoogleTokenResponse} from './types'
-import {InMemoryTokenStore} from "./InMemoryTokenStore";
+import {InMemoryTokenStore} from "./TokenStore/InMemoryTokenStore";
 
 const AUTH_BASE_URL = 'https://foo.bar'
 

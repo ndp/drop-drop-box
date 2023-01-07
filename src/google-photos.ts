@@ -1,5 +1,5 @@
 import {RequestInfo, RequestInit, Response} from 'node-fetch'
-import {TokenStore} from './oauth2-client';
+import {TokenStore} from './oauth2-client/TokenStore';
 import ReadableStream = NodeJS.ReadableStream;
 import {makeAuthyFetch} from "./oauth2-client/AuthyFetch";
 import {GOOGLE_OAUTH2_AUTH_BASE_URL, GOOGLE_OAUTH2_TOKEN_URL} from "./oauth2-client/Google";

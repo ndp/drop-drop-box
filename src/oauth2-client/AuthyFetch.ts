@@ -1,23 +1,24 @@
-import {OAuth2Client, TokenStore} from "./index";
-import {InMemoryTokenStore} from "./InMemoryTokenStore";
+import {OAuth2Client} from "./index";
+import {TokenStore} from './TokenStore'
+import {InMemoryTokenStore} from "./TokenStore/InMemoryTokenStore";
 import fetch, {RequestInfo, RequestInit, Response} from "node-fetch";
 import {exec} from "child_process";
 import http, {IncomingMessage, ServerResponse} from "http";
 
 export function makeAuthyFetch({
-                                       clientId, clientSecret,
-                                       tokenStore,
-                                       scope,
-                                       authBaseUrl, tokenUrl
-                                     }:
-                                       {
-                                         clientId: string,
-                                         clientSecret: string,
-                                         tokenStore?: TokenStore,
-                                         scope: Array<string>,
-                                         authBaseUrl: string,
-                                         tokenUrl: string
-                                       }) {
+                                 clientId, clientSecret,
+                                 tokenStore,
+                                 scope,
+                                 authBaseUrl, tokenUrl
+                               }:
+                                 {
+                                   clientId: string,
+                                   clientSecret: string,
+                                   tokenStore?: TokenStore,
+                                   scope: Array<string>,
+                                   authBaseUrl: string,
+                                   tokenUrl: string
+                                 }) {
 
 
   const PORT = 9999

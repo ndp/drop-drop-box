@@ -5,9 +5,9 @@ import {
   ERR_REFRESH_FAILED,
 } from "./symbols";
 import {
-  GoogleToken, GoogleTokenResponse, TokenStore
+  GoogleToken, GoogleTokenResponse
 } from "./types";
-import {InMemoryTokenStore} from "./InMemoryTokenStore";
+import { TokenStore } from './TokenStore'
 
 
 // How much time do we need left on the refresh token before
