@@ -1,8 +1,9 @@
 import fetch, {RequestInfo, RequestInit, Response} from 'node-fetch'
-import {GoogleToken, OAuth2Client, TokenStore} from './google-oauth2-client/index';
+import {OAuth2Client, TokenStore} from './google-oauth2-client';
 import {exec} from 'child_process'
 import http, {IncomingMessage, ServerResponse} from 'http'
 import {InMemoryTokenStore} from "./google-oauth2-client/InMemoryTokenStore";
+import ReadableStream = NodeJS.ReadableStream;
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -11,34 +12,30 @@ const SCOPE = [
   'https://www.googleapis.com/auth/photoslibrary.appendonly'
 ]
 
-const SETTINGS = {
-  "installed": {
-    "client_id": "721958700054-ecgdcgbgorr4e4tpmthj6dd8gfbgauj9.apps.googleusercontent.com",
-    "project_id": "dropdropbox-1669873149217",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "redirect_uris": ["http://localhost"]
-  }
-}.installed
+// const GOOGLE_PHOTOS_ALBUM_NAME = 'Imported from Dropbox'
+const GOOGLE_PHOTOS_ALBUM_ID = 'AIeID-riC2_qP0DgMlCcZrt6jDL8_05BaWyr2_Sj9w_24YbQlwtLdAh_KdJUZ_1vQpCvCxAFFwkb'
 
 //TOKEN_URL = 'https://www.googleapis.com/oauth2/v4/token'
 
-const tokenStore = new InMemoryTokenStore()
 
+export function makeAutoRefreshFetch({
+                                       clientId, clientSecret, tokenStore
+                                     }:
+                                       {
+                                         clientId: string,
+                                         clientSecret: string,
+                                         tokenStore?: TokenStore
+                                       }) {
 
-export function makeAutoRefreshFetch() {
-
+  const PORT = 9999
   const client = new OAuth2Client(
-    process.env.GOOGLE_CLIENT_ID!,
-    process.env.GOOGLE_CLIENT_SECRET!,
-    "http://localhost:9999/callback",
-    tokenStore
+    clientId,
+    clientSecret,
+    `http://localhost:${PORT}/callback`,
+    tokenStore || new InMemoryTokenStore()
   );
 
-
   return async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
-
     if (client.hasValidRefreshToken()
       && client.isTimeToRefresh())
       await client.refreshAccessToken()
@@ -61,11 +58,11 @@ export function makeAutoRefreshFetch() {
     const authURL = client.generateAuthUrl(
       {access_type: 'offline', prompt: 'consent', scope: SCOPE});
 
-    console.log({authURL})
+    // console.log({authURL})
     exec(`open "${authURL}"`)
 
     return new Promise(resolve => {
-      const server = http.createServer(requestListener).listen(9999);
+      const server = http.createServer(requestListener).listen(PORT);
 
       async function requestListener(req: IncomingMessage, res: ServerResponse) {
 
@@ -78,7 +75,7 @@ export function makeAutoRefreshFetch() {
         if (url.pathname !== '/callback') return
 
         const code = url.searchParams.get('code')
-        console.log('searchParams: ', {code})
+        // console.log('searchParams: ', {code})
 
         const token = await client.exchangeAuthCodeForToken(code!)
         resolve(token)
@@ -90,11 +87,12 @@ export function makeAutoRefreshFetch() {
 
 let myFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 
-export function setUpGoogleOAuth() {
-  myFetch = makeAutoRefreshFetch();
+export function setUpGoogleOAuth(
+  options: { clientId: string, clientSecret: string, tokenStore?: TokenStore }) {
+  myFetch = makeAutoRefreshFetch(options);
 }
 
-export async function listAlbums(bearerToken: string) {
+export async function listAlbums() {
   const response = await myFetch(
     'https://photoslibrary.googleapis.com/v1/albums')
   return await response.json()
@@ -105,6 +103,73 @@ export async function listMediaItems() {
     .then(response => response.json())
 }
 
-const GOOGLE_PHOTOS_ALBUM_NAME = 'Imported from Dropbox'
-const GOOGLE_PHOTOS_ALBUM_ID = 'AIeID-riC2_qP0DgMlCcZrt6jDL8_05BaWyr2_Sj9w_24YbQlwtLdAh_KdJUZ_1vQpCvCxAFFwkb'
+export type MimeType = 'image/jpeg' | 'image/png' | 'image/gif'
+type UploadToken = string
 
+export async function uploadMedia(
+  {
+    stream,
+    mimeType
+  }: { stream: ReadableStream, mimeType: MimeType }
+): Promise<UploadToken> {
+  return myFetch('https://photoslibrary.googleapis.com/v1/uploads', {
+    method: 'POST',
+    body: stream,
+    headers: {
+      'Content-type': 'application/octet-stream',
+      'X-Goog-Upload-Content-Type': mimeType,
+      'X-Goog-Upload-Protocol': 'raw'
+    }
+  }).then(response => response.body.toString())
+}
+
+
+type MediaCreationResponse = {
+  "newMediaItemResults": Array<{
+    uploadToken: string,
+    status: {
+      message: 'Success' | 'Internal error',
+      code?: number
+    }
+    mediaItem: {
+      id: string,
+      description: string,
+      productUrl: string
+      mimeType: MimeType,
+      "mediaMetadata": {
+        "width": string,
+        "height": string,
+        "creationTime": string,
+        "photo": {}
+      },
+      "filename": string
+    }
+  }>
+}
+
+
+export async function createMediaItem(
+  {description, fileName, uploadToken}:
+    {
+      description: string,
+      fileName: string,
+      uploadToken: UploadToken
+    }
+) {
+  return myFetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
+    headers: {'Content-type': 'application/json'},
+    body: JSON.stringify({
+      "albumId": GOOGLE_PHOTOS_ALBUM_ID,
+      "newMediaItems": [
+        {
+          "description": description,
+          "simpleMediaItem": {
+            "fileName": fileName,
+            "uploadToken": uploadToken
+          }
+        }
+
+      ]
+    })
+  }).then(response => response.json() as Promise<MediaCreationResponse>)
+}

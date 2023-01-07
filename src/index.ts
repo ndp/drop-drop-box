@@ -7,7 +7,7 @@ import figlet from 'figlet'
 import {Command} from 'commander'
 import {Database} from 'sqlite-async'
 import {createTables, stats} from './db'
-import {listAlbums, listMediaItems, setUpGoogleOAuth} from './google-photos'
+import {listAlbums, listMediaItems, setUpGoogleOAuth, uploadMedia} from './google-photos'
 import {
   insertSearchPath,
   readOnePendingSearchPath,
@@ -16,8 +16,9 @@ import {
   updateSearchPathStatus
 } from "./db/search_paths";
 import {lpad} from "./util";
-import {listFolderResult, selectFilesFromResult, setUpDropboxApi} from "./dropbox";
-import {insertDropboxItem} from "./db/dropbox_items";
+import {getStream, listFolderResult, selectFilesFromResult, setUpDropboxApi} from "./dropbox";
+import {insertDropboxItem, readOneDropboxItemById} from "./db/dropbox_items";
+import {SqliteTokenStore} from "./google-oauth2-client/SqliteTokenStore";
 
 dotenv.config()
 
@@ -41,15 +42,30 @@ const google = new Command('google')
   .description('google stuff')
   .action(async () => {
 
-    setUpGoogleOAuth()
 
-    const mediaItems = await listMediaItems()
-    console.log(JSON.stringify({mediaItems}))
+    //const mediaItems = await listMediaItems()
+    // console.log(JSON.stringify({mediaItems}))
+
+    const db = await getDatabase()
+    const item = await readOneDropboxItemById(db, 2)
+    console.log({item})
+
+    setUpDropboxApi()
+
+    const getStreamResponse = await getStream(item.path_lower)
+    const download = getStreamResponse
+
+    setUpGoogleOAuth({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      tokenStore: await SqliteTokenStore.setup(db)
+    })
+    const foo = uploadMedia(download)
+    console.log({foo})
 
     // const albums = await listAlbums(authResult.tokens.access_token)
     // console.log(albums)
   })
-
 
 
 export const add = new Command('add')

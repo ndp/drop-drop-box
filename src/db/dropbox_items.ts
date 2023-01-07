@@ -39,7 +39,7 @@ export async function insertDropboxItem(db: Database, file: DropboxFileImport): 
   if (existing)
     return Promise.resolve(existing.id)
 
-  return db.run(`insert into dropbox_items (
+  return db.run(`INSERT INTO dropbox_items (
                         dropbox_id, path_lower, size, content_hash
                         ) values ($1, $2, $3, $4);`,
     [file.id, file.path_lower, file.size, file.content_hash])
