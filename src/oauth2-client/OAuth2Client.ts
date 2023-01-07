@@ -3,25 +3,43 @@ import {stringify} from "query-string";
 import EventEmitter from "eventemitter3";
 import {
   ERR_REFRESH_FAILED,
-  GOOGLE_OAUTH2_AUTH_BASE_URL,
-  GOOGLE_OAUTH2_TOKEN_URL
 } from "./symbols";
 import {
   GoogleToken, GoogleTokenResponse, TokenStore
 } from "./types";
+import {InMemoryTokenStore} from "./InMemoryTokenStore";
 
 
+// How much time do we need left on the refresh token before
+// we request a "refresh"?
 const REFRESH_THRESHOLD_MS = 60 * 1000
 
 export class OAuth2Client extends EventEmitter {
 
   protected _refreshTokenPromises: Map<string, Promise<GoogleTokenResponse>> = new Map();
+  protected _clientID: string
+  protected _clientSecret: string
+  protected _redirectURL: string
+  public tokenStore: TokenStore
+  private tokenUrl: string;
+  private authBaseUrl: string;
 
-  constructor(protected _clientID: string,
-              protected _clientSecret: string,
-              protected _redirectURL: string,
-              public tokenStore: TokenStore) {
-    super();
+  constructor(options: {
+                clientId: string,
+                clientSecret: string,
+                redirectUrl: string,
+                tokenStore: TokenStore,
+                authBaseUrl: string,
+                tokenUrl: string
+              }
+  ) {
+    super()
+    this._clientID = options.clientId
+    this._clientSecret = options.clientSecret
+    this._redirectURL = options.redirectUrl
+    this.tokenStore = options.tokenStore
+    this.authBaseUrl = options.authBaseUrl
+    this.tokenUrl = options.tokenUrl
   }
 
   get bearerToken() {
@@ -49,7 +67,7 @@ export class OAuth2Client extends EventEmitter {
       client_id: this._clientID,
       redirect_uri: this._redirectURL
     };
-    return `${GOOGLE_OAUTH2_AUTH_BASE_URL}?${stringify(opts)}`;
+    return `${this.authBaseUrl}?${stringify(opts)}`;
   }
 
   async exchangeAuthCodeForToken(authCode: string): Promise<GoogleTokenResponse> {
@@ -62,7 +80,7 @@ export class OAuth2Client extends EventEmitter {
       grant_type: "authorization_code"
     };
     const res = await this.fetcher({
-      url: GOOGLE_OAUTH2_TOKEN_URL,
+      url: this.tokenUrl,
       method: "POST",
       body: stringify(data),
       headers: {
@@ -123,7 +141,7 @@ export class OAuth2Client extends EventEmitter {
       grant_type: "refresh_token"
     };
     const res = await this.fetcher({
-      url: GOOGLE_OAUTH2_TOKEN_URL,
+      url: this.authBaseUrl,
       method: "POST",
       body: stringify(data),
       headers: {
