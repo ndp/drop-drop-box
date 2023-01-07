@@ -37,6 +37,15 @@ export const status = new Command('status')
     console.log('stats', await stats(db))
   })
 
+export const resetAuth = new Command('reset-auth')
+  .description('reset the persisted auth and log in again')
+  .action(async () => {
+    const db = await getDatabase()
+    const ts = new SqliteTokenStore(db)
+    ts.resetTokens()
+    console.log('Tokens cleared.')
+  })
+
 
 const google = new Command('google')
   .description('google stuff')
@@ -149,6 +158,7 @@ command
   .addCommand(add)
   .addCommand(discover)
   .addCommand(folders)
+  .addCommand(resetAuth)
   .addCommand(google)
   .parse(process.argv);
 
