@@ -7,10 +7,10 @@ import {GOOGLE_OAUTH2_AUTH_BASE_URL, GOOGLE_OAUTH2_TOKEN_URL} from "./oauth2-cli
 
 // was https://accounts.google.com/o/oauth2/auth
 const SCOPE = [
+  'https://www.googleapis.com/auth/photoslibrary',
   'https://www.googleapis.com/auth/photoslibrary.readonly',
   'https://www.googleapis.com/auth/photoslibrary.appendonly'
 ]
-
 // const GOOGLE_PHOTOS_ALBUM_NAME = 'Imported from Dropbox'
 const GOOGLE_PHOTOS_ALBUM_ID = 'AIeID-riC2_qP0DgMlCcZrt6jDL8_05BaWyr2_Sj9w_24YbQlwtLdAh_KdJUZ_1vQpCvCxAFFwkb'
 
@@ -57,11 +57,16 @@ export async function uploadMedia(
       'X-Goog-Upload-Content-Type': mimeType,
       'X-Goog-Upload-Protocol': 'raw'
     }
-  }).then(response => response.body.toString())
+  }).then(response => response.text())
 }
 
 
 type MediaCreationResponse = {
+  "error"?: {
+    code: number,
+    message: string,
+    status: string
+  },
   "newMediaItemResults": Array<{
     uploadToken: string,
     status: {
@@ -95,6 +100,7 @@ export async function createMediaItem(
 ) {
   return authyFetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
     headers: {'Content-type': 'application/json'},
+    method: 'POST',
     body: JSON.stringify({
       "albumId": GOOGLE_PHOTOS_ALBUM_ID,
       "newMediaItems": [
@@ -105,8 +111,13 @@ export async function createMediaItem(
             "uploadToken": uploadToken
           }
         }
-
       ]
     })
-  }).then(response => response.json() as Promise<MediaCreationResponse>)
+  }).then(response => {
+    // console.log({response})
+    // if (response.status >= 200 && response.status < 300)
+      return response.json() as Promise<MediaCreationResponse>;
+    // else
+    //   throw `${response.status} ${response.statusText}`
+  })
 }

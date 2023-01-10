@@ -7,7 +7,7 @@ import figlet from 'figlet'
 import {Command} from 'commander'
 import {Database} from 'sqlite-async'
 import {createTables, stats} from './db'
-import {listAlbums, listMediaItems, setUpGoogleOAuth, uploadMedia} from './google-photos'
+import {createMediaItem, listAlbums, listMediaItems, setUpGoogleOAuth, uploadMedia} from './google-photos'
 import {
   insertSearchPath,
   readOnePendingSearchPath,
@@ -56,23 +56,28 @@ const google = new Command('google')
     // console.log(JSON.stringify({mediaItems}))
 
     const db = await getDatabase()
-    const item = await readOneDropboxItemById(db, 2)
+    const item = await readOneDropboxItemById(db, 7)
     console.log({item})
 
     setUpDropboxApi()
 
-    const getStreamResponse = await getStream(item.path_lower)
-    const download = getStreamResponse
+    const download = await getStream(item.path_lower)
 
     setUpGoogleOAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       tokenStore: await SqliteTokenStore.setup(db)
     })
-    const foo = uploadMedia(download)
-    console.log({foo})
+    const uploadToken = await uploadMedia(download)
+    console.log({uploadToken: JSON.stringify(uploadToken)})
 
-    // const albums = await listAlbums(authResult.tokens.access_token)
+    const response = await createMediaItem({
+      description: '',
+      fileName: item.path_lower,
+      uploadToken: uploadToken
+    })
+    console.log({response,response2: JSON.stringify(response)})
+    // const albums = await listAlbums()
     // console.log(albums)
   })
 
