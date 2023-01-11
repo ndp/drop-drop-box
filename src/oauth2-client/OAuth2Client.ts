@@ -1,5 +1,4 @@
 import fetch from 'node-fetch'
-import * as QueryString from "query-string";
 import {
   ERR_REFRESH_FAILED,
 } from "./symbols";
@@ -7,6 +6,7 @@ import {
   GoogleToken, GoogleTokenResponse
 } from "./types";
 import { TokenStore } from './TokenStore'
+import {buildQueryString} from "../util";
 
 
 // How much time do we need left on the refresh token before
@@ -65,7 +65,7 @@ export class OAuth2Client {
       client_id: this._clientID,
       redirect_uri: this._redirectURL
     };
-    return `${this.authBaseUrl}?${QueryString.stringify(opts)}`;
+    return `${this.authBaseUrl}?${buildQueryString(opts)}`;
   }
 
   async exchangeAuthCodeForToken(authCode: string): Promise<GoogleTokenResponse> {
@@ -80,7 +80,7 @@ export class OAuth2Client {
     const res = await this.fetcher({
       url: this.tokenUrl,
       method: "POST",
-      body: QueryString.stringify(data),
+      body: buildQueryString(data),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       }
@@ -141,7 +141,7 @@ export class OAuth2Client {
     const res = await this.fetcher({
       url: this.authBaseUrl,
       method: "POST",
-      body: QueryString.stringify(data),
+      body: buildQueryString(data),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       },

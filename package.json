@@ -39,7 +39,6 @@
     "dotenv": "*",
     "dropbox": "*",
     "figlet": "*",
-    "query-string": "^7.1.3",
     "sqlite-async": "ndp/sqlite-async#13-typescript"
   }
 }
