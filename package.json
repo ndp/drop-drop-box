@@ -16,14 +16,14 @@
   "license": "MIT",
   "private": false,
   "devDependencies": {
-    "@types/chai": "^4.3.4",
+    "@types/chai": "*",
     "@types/chalk": "*",
     "@types/expect": "*",
     "@types/figlet": "*",
     "@types/mocha": "*",
     "@types/node": "*",
     "@types/node-fetch": "*",
-    "@types/sinon": "^10.0.13",
+    "@types/sinon": "*",
     "@types/sqlite3": "*",
     "chai": "*",
     "mocha": "*",
@@ -33,7 +33,7 @@
     "typescript": "*"
   },
   "dependencies": {
-    "chalk": "4.1.2",
+    "chalk": "~4",
     "clear": "*",
     "commander": "*",
     "dotenv": "*",

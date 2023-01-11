@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import {stringify} from "query-string";
+import * as QueryString from "query-string";
 import EventEmitter from "eventemitter3";
 import {
   ERR_REFRESH_FAILED,
@@ -67,7 +67,7 @@ export class OAuth2Client extends EventEmitter {
       client_id: this._clientID,
       redirect_uri: this._redirectURL
     };
-    return `${this.authBaseUrl}?${stringify(opts)}`;
+    return `${this.authBaseUrl}?${QueryString.stringify(opts)}`;
   }
 
   async exchangeAuthCodeForToken(authCode: string): Promise<GoogleTokenResponse> {
@@ -82,7 +82,7 @@ export class OAuth2Client extends EventEmitter {
     const res = await this.fetcher({
       url: this.tokenUrl,
       method: "POST",
-      body: stringify(data),
+      body: QueryString.stringify(data),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       }
@@ -143,7 +143,7 @@ export class OAuth2Client extends EventEmitter {
     const res = await this.fetcher({
       url: this.authBaseUrl,
       method: "POST",
-      body: stringify(data),
+      body: QueryString.stringify(data),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       },
