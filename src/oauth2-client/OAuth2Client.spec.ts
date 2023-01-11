@@ -8,11 +8,12 @@ const AUTH_BASE_URL = 'https://foo.bar'
 
 describe("OAuth2Client", function () {
   beforeEach(function () {
+    this.tokenStore = new InMemoryTokenStore();
     this.client = new OAuth2Client({
         clientId: "clientid",
         clientSecret: "clientsecret",
         redirectUrl: "https://website.com",
-        tokenStore: new InMemoryTokenStore(),
+        tokenStore: this.tokenStore,
         authBaseUrl: AUTH_BASE_URL,
         tokenUrl: 'http//gimmetoken.com',
       }
@@ -67,8 +68,7 @@ describe("OAuth2Client", function () {
 
 
     beforeEach(function () {
-      this.tokensListener = sinon.spy();
-      this.client.on("tokens", this.tokensListener);
+      this.tokenStore.save = sinon.spy();
       return this.client
         .exchangeAuthCodeForToken("auth")
         .then((result: GoogleTokenResponse) => {
@@ -83,9 +83,9 @@ describe("OAuth2Client", function () {
     });
 
     it("emits an event with the tokens", function () {
-      expect(this.tokensListener.callCount).to.equal(1);
-      expect(this.tokensListener.firstCall.args[0]).to.have.property("access_token", "at");
-      expect(this.tokensListener.firstCall.args[0]).to.have.property("refresh_token", "rt");
+      expect(this.tokenStore.save.callCount).to.equal(1);
+      expect(this.tokenStore.save.firstCall.args[0]).to.have.property("access_token", "at");
+      expect(this.tokenStore.save.firstCall.args[0]).to.have.property("refresh_token", "rt");
     });
   });
 

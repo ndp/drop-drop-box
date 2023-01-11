@@ -1,6 +1,5 @@
 import fetch from 'node-fetch'
 import * as QueryString from "query-string";
-import EventEmitter from "eventemitter3";
 import {
   ERR_REFRESH_FAILED,
 } from "./symbols";
@@ -14,7 +13,7 @@ import { TokenStore } from './TokenStore'
 // we request a "refresh"?
 const REFRESH_THRESHOLD_MS = 60 * 1000
 
-export class OAuth2Client extends EventEmitter {
+export class OAuth2Client {
 
   protected _refreshTokenPromises: Map<string, Promise<GoogleTokenResponse>> = new Map();
   protected _clientID: string
@@ -33,7 +32,6 @@ export class OAuth2Client extends EventEmitter {
                 tokenUrl: string
               }
   ) {
-    super()
     this._clientID = options.clientId
     this._clientSecret = options.clientSecret
     this._redirectURL = options.redirectUrl
@@ -170,7 +168,6 @@ export class OAuth2Client extends EventEmitter {
       delete tokens.expires_in;
     }
     this.tokenStore.save(tokens)
-    this.emit("tokens", tokens);
   }
 
 
