@@ -1,7 +1,7 @@
 import {OAuth2Client} from "./OAuth2Client";
 import {expect} from 'chai'
 import sinon from 'sinon'
-import {GoogleTokenResponse} from './types'
+import {TokenResponse} from './types'
 import {InMemoryTokenStore} from "./TokenStore/InMemoryTokenStore";
 
 const AUTH_BASE_URL = 'https://foo.bar'
@@ -71,7 +71,7 @@ describe("OAuth2Client", function () {
       this.tokenStore.save = sinon.spy();
       return this.client
         .exchangeAuthCodeForToken("auth")
-        .then((result: GoogleTokenResponse) => {
+        .then((result: TokenResponse) => {
           this.result = result;
         });
     });

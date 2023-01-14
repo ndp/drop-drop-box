@@ -3,9 +3,9 @@ import {
   ERR_REFRESH_FAILED,
 } from "./symbols";
 import {
-  GoogleToken, GoogleTokenResponse
+  TokenRecord, TokenResponse
 } from "./types";
-import { TokenStore } from './TokenStore'
+import {TokenStore} from './TokenStore'
 import {buildQueryString} from "../util";
 
 
@@ -15,7 +15,7 @@ const REFRESH_THRESHOLD_MS = 60 * 1000
 
 export class OAuth2Client {
 
-  protected _refreshTokenPromises: Map<string, Promise<GoogleTokenResponse>> = new Map();
+  protected _refreshTokenPromises: Map<string, Promise<TokenResponse>> = new Map();
   protected _clientID: string
   protected _clientSecret: string
   protected _redirectURL: string
@@ -44,18 +44,17 @@ export class OAuth2Client {
     return this.tokenStore.access_token
   }
 
-  generateAuthUrl(config: {
+  generateAuthUrl({
+                    access_type,
+                    prompt,
+                    response_type = "code",
+                    scope: rawScope
+                  }: {
     access_type: string;
     prompt: string;
     response_type?: string;
     scope: Array<string> | string;
   }) {
-    const {
-      access_type,
-      scope: rawScope,
-      prompt,
-      response_type = "code"
-    } = config;
     const scope = Array.isArray(rawScope) ? rawScope.join(" ") : rawScope;
     const opts = {
       access_type,
@@ -68,8 +67,10 @@ export class OAuth2Client {
     return `${this.authBaseUrl}?${buildQueryString(opts)}`;
   }
 
-  async exchangeAuthCodeForToken(authCode: string): Promise<GoogleTokenResponse> {
+  async exchangeAuthCodeForToken(authCode: string): Promise<TokenResponse> {
+
     const decodedAuthCode = decodeURIComponent(authCode);
+
     const data = {
       code: decodedAuthCode,
       client_id: this._clientID,
@@ -77,6 +78,7 @@ export class OAuth2Client {
       redirect_uri: this._redirectURL,
       grant_type: "authorization_code"
     };
+
     const res = await this.fetcher({
       url: this.tokenUrl,
       method: "POST",
@@ -104,13 +106,17 @@ export class OAuth2Client {
       this.tokenStore!.expiry_date! < (new Date().getTime() + REFRESH_THRESHOLD_MS)
   }
 
-  refreshAccessToken(): Promise<GoogleTokenResponse> {
+  refreshAccessToken(): Promise<TokenResponse> {
 
     if (!this.hasValidRefreshToken())
       throw "No valid refresh token"
 
     const refreshToken = this.tokenStore.refresh_token
 
+    // There's a cache here to prevent a race condition, wherein
+    // we ask for a refresh token in the middle of already asking
+    // for one.
+    // This could be an interesting abstraction TODO
     if (this._refreshTokenPromises.has(refreshToken)) {
       return this._refreshTokenPromises.get(refreshToken)!;
     }
@@ -131,7 +137,7 @@ export class OAuth2Client {
 
   private async refreshAccessTokenNoCache(
     refreshToken: string
-  ): Promise<GoogleTokenResponse> {
+  ): Promise<TokenResponse> {
     const data = {
       refresh_token: refreshToken,
       client_id: this._clientID,
@@ -162,7 +168,7 @@ export class OAuth2Client {
     };
   }
 
-  private saveTokens(tokens: GoogleToken) {
+  private saveTokens(tokens: TokenRecord) {
     if (tokens?.expires_in) {
       tokens.expiry_date = new Date().getTime() + tokens.expires_in * 1000;
       delete tokens.expires_in;
@@ -174,10 +180,14 @@ export class OAuth2Client {
   async fetcher({url, ...rest}: any) {
     // this is replacing cowl lib
     const response = await fetch(url, rest)
+    const data = await response.json().catch(e => {
+      console.log(`Cannot parse JSON response from ${url}.`)
+      return null
+    });
     return {
       status: response.status,
       statusText: response.statusText,
-      data: await response.json()
+      data: data
     }
   }
 

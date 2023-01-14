@@ -50,6 +50,17 @@ Visibility into what's happening.
 - I manually applied this [Template](https://itnext.io/how-to-create-your-own-typescript-cli-with-node-js-1faf7095ef89)
 - I copied some of the google oauth implementation from https://github.com/buttercup/google-oauth2-client. It was the first one I could get to work. I am taking it in a different direction, but that code got me started. Also of interest: https://dev.to/lauravuo/how-to-oauth-from-the-command-line-47j0 https://github.com/badgateway/oauth2-client
 
+## Tasks
+
+- [ ] Dropbox oauth
+- [ ] Filter out images that can be processed
+- [ ] Keep a list of non-images... what to do?
+- [ ] Mark as copied on Dropbox, or remove
+- [ ] import into folder on Google Photos
+- https://github.com/red-data-tools/YouPlot
+
+
+
 ## Questions
 - [ ] make sure creationTime is accurately set
 - [ ] filter by type

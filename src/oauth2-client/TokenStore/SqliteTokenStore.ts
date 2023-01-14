@@ -1,6 +1,5 @@
 import {Database} from 'sqlite-async'
-import {Storable} from "../index";
-import {TokenStore} from "./index";
+import {Storable, TokenStore} from "./index";
 
 
 export class SqliteTokenStore implements TokenStore {

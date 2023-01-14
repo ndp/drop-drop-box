@@ -1,8 +1,10 @@
 import {RequestInfo, RequestInit, Response} from 'node-fetch'
 import {TokenStore} from './oauth2-client/TokenStore';
 import ReadableStream = NodeJS.ReadableStream;
-import {makeAuthyFetch} from "./oauth2-client/AuthyFetch";
+import { makeAuthyFetch} from "./oauth2-client/AuthyFetch";
 import {GOOGLE_OAUTH2_AUTH_BASE_URL, GOOGLE_OAUTH2_TOKEN_URL} from "./oauth2-client/Google";
+import {OAuth2Client} from "./oauth2-client";
+import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -21,12 +23,22 @@ let authyFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 
 export function setUpGoogleOAuth(
   options: { clientId: string, clientSecret: string, tokenStore?: TokenStore }) {
-  authyFetch = makeAuthyFetch({
-    ...options,
-    scope: SCOPE,
-    authBaseUrl: GOOGLE_OAUTH2_AUTH_BASE_URL,
-    tokenUrl: GOOGLE_OAUTH2_TOKEN_URL
-  });
+
+  const PORT = 9999
+  const redirectUrl = `http://localhost:${PORT}/callback`
+
+  const client = new OAuth2Client({
+      clientId: options.clientId,
+      clientSecret: options.clientSecret,
+      tokenStore: options.tokenStore || new InMemoryTokenStore(),
+      redirectUrl: redirectUrl,
+      authBaseUrl: GOOGLE_OAUTH2_AUTH_BASE_URL,
+      tokenUrl: GOOGLE_OAUTH2_TOKEN_URL
+    }
+  );
+
+  authyFetch = makeAuthyFetch(client, PORT, SCOPE);
+
 }
 
 export async function listAlbums() {
@@ -116,7 +128,7 @@ export async function createMediaItem(
   }).then(response => {
     // console.log({response})
     // if (response.status >= 200 && response.status < 300)
-      return response.json() as Promise<MediaCreationResponse>;
+    return response.json() as Promise<MediaCreationResponse>;
     // else
     //   throw `${response.status} ${response.statusText}`
   })

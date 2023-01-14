@@ -1,14 +1,13 @@
-export interface GoogleToken {
+export interface TokenRecord {
   access_token: string;
   expires_in?: number;
   expiry_date?: number; // units matches `Date().getTime()`; Unix timestamp in milliseconds
   refresh_token: string;
 }
 
-export interface GoogleTokenResponse {
+export interface TokenResponse {
   res: any;
-  tokens: GoogleToken;
+  tokens: TokenRecord;
 }
 
 
-export type Storable = Pick<GoogleToken, 'access_token'|'refresh_token'|'expiry_date'>

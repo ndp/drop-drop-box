@@ -1,9 +1,9 @@
-import {GoogleToken} from "../types";
+import {TokenRecord} from "../types";
 import {TokenStore} from './index'
 
 export class InMemoryTokenStore implements TokenStore {
 
-  _tokens: GoogleToken | null = null
+  _tokens: TokenRecord | null = null
 
   get access_token() {
     return this._tokens?.access_token ?? ''
@@ -17,7 +17,7 @@ export class InMemoryTokenStore implements TokenStore {
     return this._tokens?.expiry_date ?? 0
   }
 
-  save(tokens: GoogleToken): void {
+  save(tokens: TokenRecord): void {
     this._tokens = tokens
   }
 }

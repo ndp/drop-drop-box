@@ -16,9 +16,11 @@ import {
   updateSearchPathStatus
 } from "./db/search_paths";
 import {lpad} from "./util";
-import {getStream, listFolderResult, selectFilesFromResult, setUpDropboxApi} from "./dropbox";
+import {getStream, listFolderResult, oauthDropbox, selectFilesFromResult, setUpDropboxApi} from "./dropbox";
 import {insertDropboxItem, readOneDropboxItemById} from "./db/dropbox_items";
 import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
+import {TokenStore} from "./oauth2-client/TokenStore";
+import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
 
 dotenv.config()
 
@@ -28,6 +30,14 @@ console.log(
   )
 );
 
+
+export const dropboxLogin = new Command('dropbox')
+  .description('oauthDropbox')
+  .action(async () => {
+    const store: TokenStore = new InMemoryTokenStore()
+    await oauthDropbox(store)
+    console.dir(store)
+  })
 
 export const status = new Command('status')
   .description('show current status')
@@ -161,6 +171,7 @@ command
   .option('-V, --verbose', 'Lotsa logging', false)
   .addCommand(status)
   .addCommand(add)
+  .addCommand(dropboxLogin)
   .addCommand(discover)
   .addCommand(folders)
   .addCommand(resetAuth)

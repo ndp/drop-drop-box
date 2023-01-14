@@ -3,16 +3,44 @@ import fetch from "node-fetch";
 import {MimeType} from "./google-photos";
 import FileMetadataReference = files.FileMetadataReference;
 import MediaInfoMetadata = files.MediaInfoMetadata;
+import {TokenStore} from "./oauth2-client/TokenStore";
+import {OAuth2Client} from "./oauth2-client";
+import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
+import {exec} from "child_process";
+import http, {IncomingMessage, ServerResponse} from "http";
+import {obtainBearerToken} from "./oauth2-client/AuthyFetch";
 
 export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 
 let dropbox: Dropbox;
 
-export function setUpDropboxApi() {
+const clientId = 'slekh6hf9rwmb1v';
+const clientSecret = 'l1cu6kkz3dcevqw';
+
+// Returns Access token
+export async function oauthDropbox(store: TokenStore): Promise<void> {
+
+  const PORT = 9998;
+
+  const client = new OAuth2Client({
+      clientId,
+      clientSecret,
+      tokenStore: store,
+      redirectUrl: `http://localhost:${PORT}/callback`,
+      authBaseUrl: 'https://www.dropbox.com/oauth2/authorize',
+      tokenUrl: 'https://api.dropbox.com/oauth2/token'
+    }
+  );
+
+  await obtainBearerToken(client, PORT)
+
+}
+
+export function setUpDropboxApi(accessToken = process.env.DROPBOX_ACCESS_TOKEN) {
   dropbox = new Dropbox({
-    accessToken: process.env.DROPBOX_ACCESS_TOKEN,
-    clientId: 'slekh6hf9rwmb1v',
-    clientSecret: 'l1cu6kkz3dcevqw'
+    accessToken,
+    clientId: clientId,
+    clientSecret: clientSecret
   });
 }
 
