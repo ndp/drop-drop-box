@@ -7,6 +7,7 @@ import {
 } from "./types";
 import {TokenStore} from './TokenStore'
 import {buildQueryString} from "../util";
+import {ProviderUrls} from "./ProviderUrlsSupported";
 
 
 // How much time do we need left on the refresh token before
@@ -28,34 +29,37 @@ export class OAuth2Client {
                 clientSecret: string,
                 redirectUrl: string,
                 tokenStore: TokenStore,
-                authBaseUrl: string,
-                tokenUrl: string
+                providerUrls: ProviderUrls
               }
   ) {
     this._clientID = options.clientId
     this._clientSecret = options.clientSecret
     this._redirectURL = options.redirectUrl
     this.tokenStore = options.tokenStore
-    this.authBaseUrl = options.authBaseUrl
-    this.tokenUrl = options.tokenUrl
+    this.authBaseUrl = options.providerUrls.authBase
+    this.tokenUrl = options.providerUrls.token
   }
 
   get bearerToken() {
     return this.tokenStore.access_token
   }
 
+  get redirectPort(): number {
+    const url = new URL(this._redirectURL)
+    return parseInt(url.port)
+  }
+
   generateAuthUrl({
                     access_type,
                     prompt,
                     response_type = "code",
-                    scope: rawScope
+                    scope
                   }: {
     access_type: string;
     prompt: string;
     response_type?: string;
-    scope: Array<string> | string;
+    scope: string;
   }) {
-    const scope = Array.isArray(rawScope) ? rawScope.join(" ") : rawScope;
     const opts = {
       access_type,
       scope,

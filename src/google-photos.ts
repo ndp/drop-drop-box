@@ -1,10 +1,10 @@
 import {RequestInfo, RequestInit, Response} from 'node-fetch'
 import {TokenStore} from './oauth2-client/TokenStore';
 import ReadableStream = NodeJS.ReadableStream;
-import { makeAuthyFetch} from "./oauth2-client/AuthyFetch";
-import {GOOGLE_OAUTH2_AUTH_BASE_URL, GOOGLE_OAUTH2_TOKEN_URL} from "./oauth2-client/Google";
+import {makeAuthyFetch} from "./oauth2-client/AuthyFetch";
 import {OAuth2Client} from "./oauth2-client";
 import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
+import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -24,20 +24,18 @@ let authyFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 export function setUpGoogleOAuth(
   options: { clientId: string, clientSecret: string, tokenStore?: TokenStore }) {
 
-  const PORT = 9999
-  const redirectUrl = `http://localhost:${PORT}/callback`
+  const redirectUrl = `http://localhost:9999/callback`
 
   const client = new OAuth2Client({
       clientId: options.clientId,
       clientSecret: options.clientSecret,
-      tokenStore: options.tokenStore || new InMemoryTokenStore(),
       redirectUrl: redirectUrl,
-      authBaseUrl: GOOGLE_OAUTH2_AUTH_BASE_URL,
-      tokenUrl: GOOGLE_OAUTH2_TOKEN_URL
+      tokenStore: options.tokenStore || new InMemoryTokenStore(),
+      providerUrls: ProviderUrlsSupported.Google,
     }
   );
 
-  authyFetch = makeAuthyFetch(client, PORT, SCOPE);
+  authyFetch = makeAuthyFetch(client, SCOPE.join(' '));
 
 }
 

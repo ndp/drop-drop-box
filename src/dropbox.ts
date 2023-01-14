@@ -2,41 +2,35 @@ import {Dropbox, files} from 'dropbox'
 import fetch from "node-fetch";
 import {MimeType} from "./google-photos";
 import FileMetadataReference = files.FileMetadataReference;
-import MediaInfoMetadata = files.MediaInfoMetadata;
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {OAuth2Client} from "./oauth2-client";
-import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
-import {exec} from "child_process";
-import http, {IncomingMessage, ServerResponse} from "http";
 import {obtainBearerToken} from "./oauth2-client/AuthyFetch";
+import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 
 export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 
 let dropbox: Dropbox;
 
-const clientId = 'slekh6hf9rwmb1v';
-const clientSecret = 'l1cu6kkz3dcevqw';
+const clientId = process.env.DROPBOX_CLIENT_ID!;
+const clientSecret = process.env.DROPBOX_CLIENT_SECRET!;
 
 // Returns Access token
 export async function oauthDropbox(store: TokenStore): Promise<void> {
 
-  const PORT = 9998;
-
   const client = new OAuth2Client({
       clientId,
       clientSecret,
+      redirectUrl: `http://localhost:9998/callback`,
       tokenStore: store,
-      redirectUrl: `http://localhost:${PORT}/callback`,
-      authBaseUrl: 'https://www.dropbox.com/oauth2/authorize',
-      tokenUrl: 'https://api.dropbox.com/oauth2/token'
+      providerUrls: ProviderUrlsSupported.Dropbox
     }
   );
 
-  await obtainBearerToken(client, PORT)
+  await obtainBearerToken(client)
 
 }
 
-export function setUpDropboxApi(accessToken = process.env.DROPBOX_ACCESS_TOKEN) {
+export function setUpDropboxApi(accessToken: string) {
   dropbox = new Dropbox({
     accessToken,
     clientId: clientId,

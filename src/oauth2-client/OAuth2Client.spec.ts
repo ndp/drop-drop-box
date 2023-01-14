@@ -12,10 +12,12 @@ describe("OAuth2Client", function () {
     this.client = new OAuth2Client({
         clientId: "clientid",
         clientSecret: "clientsecret",
-        redirectUrl: "https://website.com",
+        redirectUrl: "https://website.com:9999/callback",
         tokenStore: this.tokenStore,
-        authBaseUrl: AUTH_BASE_URL,
-        tokenUrl: 'http//gimmetoken.com',
+        providerUrls: {
+          authBase: AUTH_BASE_URL,
+          token: 'http//gimmetoken.com',
+        }
       }
     );
     sinon.stub(this.client, "fetcher").returns(Promise.resolve({
@@ -27,7 +29,7 @@ describe("OAuth2Client", function () {
     }));
     this.authURLConfig = {
       access_type: "offline",
-      scope: ["email", "profile"],
+      scope: "email profile",
       prompt: "consent"
     };
   });
@@ -88,6 +90,12 @@ describe("OAuth2Client", function () {
       expect(this.tokenStore.save.firstCall.args[0]).to.have.property("refresh_token", "rt");
     });
   });
+
+  describe('redirectPort', function () {
+    it('finds port in URL', function () {
+      expect(this.client.redirectPort).to.equal(9999)
+    })
+  })
 
   describe("auth code decoding", function () {
     beforeEach(function () {
