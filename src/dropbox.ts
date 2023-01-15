@@ -9,13 +9,18 @@ import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 
 export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 
-let dropbox: Dropbox;
-
-const clientId = process.env.DROPBOX_CLIENT_ID!;
-const clientSecret = process.env.DROPBOX_CLIENT_SECRET!;
+let dropboxApi: Dropbox;
 
 // Returns Access token
-export async function oauthDropbox(store: TokenStore): Promise<void> {
+export async function oauthDropbox({
+                                     clientId,
+                                     clientSecret,
+                                     store
+                                   }: {
+  clientId: string,
+  clientSecret: string,
+  store: TokenStore
+}): Promise<void> {
 
   const client = new OAuth2Client({
       clientId,
@@ -26,12 +31,10 @@ export async function oauthDropbox(store: TokenStore): Promise<void> {
     }
   );
 
-  await obtainBearerToken(client)
+  const accessToken = await obtainBearerToken(client, '');
 
-}
-
-export function setUpDropboxApi(accessToken: string) {
-  dropbox = new Dropbox({
+  // Set up the `dropboxApi` global
+  dropboxApi = new Dropbox({
     accessToken,
     clientId: clientId,
     clientSecret: clientSecret
@@ -43,8 +46,8 @@ export async function listFolderResult(path: string, cursor: string | null) {
   // console.log('listFolderResult for ', path, JSON.stringify(dropbox))
 
   const response = cursor !== null
-    ? await dropbox.filesListFolderContinue({cursor: cursor})
-    : await dropbox.filesListFolder({
+    ? await dropboxApi.filesListFolderContinue({cursor: cursor})
+    : await dropboxApi.filesListFolder({
       path,
       recursive: true,
       include_non_downloadable_files: false
@@ -85,15 +88,15 @@ export async function getStream(path: string):
   Promise<{ stream: NodeJS.ReadableStream, mimeType: MimeType }> {
 
 
-  const {result} = await dropbox.filesDownload({path})
+  const {result} = await dropboxApi.filesDownload({path})
   const stream = (result as unknown as { fileBinary: NodeJS.ReadableStream }).fileBinary
   return {stream, mimeType: pathToMimeType(path)}
 
 
-  const r1 = await dropbox.filesGetTemporaryLink({path});
+  const r1 = await dropboxApi.filesGetTemporaryLink({path});
   console.log(JSON.stringify({dropboxResponse: r1}))
 
-  dropbox.filesTagsAdd({path, tag_text: 'downloading'})
+  dropboxApi.filesTagsAdd({path, tag_text: 'downloading'})
 
   const r2 = await fetch(r1.result.link)
   await r2.blob()

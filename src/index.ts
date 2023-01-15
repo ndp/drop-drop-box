@@ -16,7 +16,7 @@ import {
   updateSearchPathStatus
 } from "./db/search_paths";
 import {lpad} from "./util";
-import {getStream, listFolderResult, oauthDropbox, selectFilesFromResult, setUpDropboxApi} from "./dropbox";
+import {getStream, listFolderResult, oauthDropbox, selectFilesFromResult} from "./dropbox";
 import {insertDropboxItem, readOneDropboxItemById} from "./db/dropbox_items";
 import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
 import {TokenStore} from "./oauth2-client/TokenStore";
@@ -35,7 +35,11 @@ export const dropboxLogin = new Command('dropbox')
   .description('oauthDropbox')
   .action(async () => {
     const store: TokenStore = new InMemoryTokenStore()
-    await oauthDropbox(store)
+    await oauthDropbox({
+      clientId: process.env.DROPBOX_CLIENT_ID!,
+      clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
+      store
+    })
     console.dir(store)
   })
 
@@ -51,9 +55,13 @@ export const resetAuth = new Command('reset-auth')
   .description('reset the persisted auth and log in again')
   .action(async () => {
     const db = await getDatabase()
-    const ts = new SqliteTokenStore(db)
-    ts.resetTokens()
-    console.log('Tokens cleared.')
+    let ts = await SqliteTokenStore.setup({db, provider: 'google'})
+    await ts.resetTokens()
+    console.log('Google tokens cleared.')
+
+    ts = await SqliteTokenStore.setup({db, provider: 'dropbox'})
+    await ts.resetTokens()
+    console.log('Dropbox tokens cleared.')
   })
 
 
@@ -69,14 +77,18 @@ const google = new Command('google')
     const item = await readOneDropboxItemById(db, 7)
     console.log({item})
 
-    setUpDropboxApi()
+    const accessToken = await oauthDropbox({
+      clientId: process.env.DROPBOX_CLIENT_ID!,
+      clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
+      store: new InMemoryTokenStore()
+    })
 
     const download = await getStream(item.path_lower)
 
     setUpGoogleOAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      tokenStore: await SqliteTokenStore.setup(db)
+      tokenStore: await SqliteTokenStore.setup({db, provider: 'google'})
     })
     const uploadToken = await uploadMedia(download)
     console.log({uploadToken: JSON.stringify(uploadToken)})
@@ -86,7 +98,7 @@ const google = new Command('google')
       fileName: item.path_lower,
       uploadToken: uploadToken
     })
-    console.log({response,response2: JSON.stringify(response)})
+    console.log({response, response2: JSON.stringify(response)})
     // const albums = await listAlbums()
     // console.log(albums)
   })
@@ -114,9 +126,15 @@ export const discover = new Command('discover')
   .argument('[n]', 'number of Dropbox folders to scan (default 1)')
   .description('discover new Dropbox files in added folders')
   .action(async (n) => {
-    setUpDropboxApi()
 
     if (!n) n = 1
+
+    await oauthDropbox({
+      clientId: process.env.DROPBOX_CLIENT_ID!,
+      clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
+      store: new InMemoryTokenStore()
+    })
+
 
     const db = await getDatabase()
 

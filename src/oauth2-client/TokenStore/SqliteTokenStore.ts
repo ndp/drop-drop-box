@@ -8,14 +8,15 @@ export class SqliteTokenStore implements TokenStore {
   private _refresh_token: string = ''
   private _expiry_date: number = 0
 
-  static async setup(db: Database) {
-    const store = new SqliteTokenStore(db)
+  static async setup({db, provider}:
+                       { db: Database, provider: string }) {
+    const store = new SqliteTokenStore(db, provider)
     await store.createTableOAuthTokens()
     await store.loadFromDb()
     return store
   }
 
-  constructor(private db: Database) {
+  private constructor(private db: Database, readonly provider: string) {
   }
 
   async save(tokens: Storable) {
@@ -23,21 +24,21 @@ export class SqliteTokenStore implements TokenStore {
     this._refresh_token = tokens.refresh_token
     this._expiry_date = tokens.expiry_date!
 
-    await this.db.run('DELETE FROM oauth_tokens')
+    await this.db.run('DELETE FROM oauth_tokens WHERE provider=?', this.provider)
     await this.db.run('INSERT INTO oauth_tokens ' +
-      '(access_token, refresh_token, expiry_date) VALUES(?,?,?)',
-      [this._access_token, this._refresh_token, this._expiry_date])
+      '(access_token, refresh_token, expiry_date, provider) VALUES(?,?,?,?)',
+      [this._access_token, this._refresh_token, this._expiry_date, this.provider])
   }
 
   get refresh_token(): string {
-    return this._refresh_token;
+    return this._refresh_token
   }
 
   get access_token(): string {
-    return this._access_token;
+    return this._access_token
   }
 
-  get expiry_date(): number | undefined {
+  get expiry_date(): number {
     return this._expiry_date;
   }
 
@@ -45,22 +46,22 @@ export class SqliteTokenStore implements TokenStore {
     await this.db.exec(`CREATE TABLE IF NOT EXISTS oauth_tokens (
                            access_token   varchar(1024) NOT NULL UNIQUE,
                            refresh_token  varchar(1024) NOT NULL UNIQUE,
-                           expiry_date    integer DEFAULT NULL
+                           expiry_date    integer DEFAULT NULL,
+                           provider       varchar(64) NOT NULL UNIQUE
                            ); `)
   }
 
   private async loadFromDb(): Promise<void> {
-    const record = await this.db.get<Required<Storable>>('SELECT * FROM oauth_tokens')
-    if (!record) return
+    const record = await this.db.get<Required<Storable>>('SELECT * FROM oauth_tokens WHERE provider=?', [this.provider])
 
-    // console.log('** found saved OAuth tokens; reloading...', record, new Date(record.expiry_date))
-    this._access_token = record.access_token
-    this._refresh_token = record.refresh_token
-    this._expiry_date = record.expiry_date
+    this._access_token = record?.access_token ?? ''
+    this._refresh_token = record?.refresh_token ?? ''
+    this._expiry_date = record?.expiry_date ?? 0
   }
 
   async resetTokens() {
-    await this.db.run('DELETE FROM oauth_tokens')
+    await this.db.run('DELETE FROM oauth_tokens WHERE provider=?', [this.provider])
+    return this.loadFromDb()
   }
 
 }
