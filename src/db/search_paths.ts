@@ -31,9 +31,9 @@ export async function createTableSearchPaths(db: Database) {
 
 
 export function insertSearchPath(db: Database, path: string): Promise<number | null> {
-  return db.run(`insert into search_paths (path) values ($1);`, [path])
+  return db.run(`insert into search_paths (path, status) values (?,?);`, [path, 'ENQUEUED'])
     .then(result => {
-      console.log(`  Added one folder (${path})`);
+      // console.log(`  Added one folder (${path})`);
       return result.lastID
     })
     .catch(err => {
@@ -56,7 +56,7 @@ export async function updateSearchPathCursor(
 }
 
 export async function updateSearchPathStatus(db: Database, searchPathId: number, newStatus: Status) {
-  console.log(`updating search path status #${searchPathId} to ${newStatus}`)
+  // console.log(`updating search path status #${searchPathId} to ${newStatus}`)
   return await db.run(
     'UPDATE search_paths ' +
     'SET status=? ' +
@@ -87,7 +87,9 @@ export async function readSearchPathStats(db: Database) {
     'Search Paths - Downloading':
       (await db.get<Count>('SELECT COUNT(*) FROM search_paths WHERE status="DOWNLOADING";'))['COUNT(*)'],
     'Search Paths - Done':
-      (await db.get<Count>('SELECT COUNT(*) FROM search_paths WHERE status="DONE";'))['COUNT(*)']
+      (await db.get<Count>('SELECT COUNT(*) FROM search_paths WHERE status="DONE";'))['COUNT(*)'],
+    'Search Paths - Failed':
+      (await db.get<Count>('SELECT COUNT(*) FROM search_paths WHERE status="FAILED";'))['COUNT(*)']
 
 
   }

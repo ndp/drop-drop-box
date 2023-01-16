@@ -1,10 +1,11 @@
 import {RequestInfo, RequestInit, Response} from 'node-fetch'
 import {TokenStore} from './oauth2-client/TokenStore';
-import ReadableStream = NodeJS.ReadableStream;
-import {makeAuthyFetch} from "./oauth2-client/AuthyFetch";
+import {preAuthedFetch} from "./oauth2-client/preAuthedFetch";
 import {OAuth2Client} from "./oauth2-client";
 import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
 import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
+import ReadableStream = NodeJS.ReadableStream;
+import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -12,7 +13,7 @@ const SCOPE = [
   'https://www.googleapis.com/auth/photoslibrary',
   'https://www.googleapis.com/auth/photoslibrary.readonly',
   'https://www.googleapis.com/auth/photoslibrary.appendonly'
-]
+].join(' ')
 // const GOOGLE_PHOTOS_ALBUM_NAME = 'Imported from Dropbox'
 const GOOGLE_PHOTOS_ALBUM_ID = 'AIeID-riC2_qP0DgMlCcZrt6jDL8_05BaWyr2_Sj9w_24YbQlwtLdAh_KdJUZ_1vQpCvCxAFFwkb'
 
@@ -21,22 +22,22 @@ const GOOGLE_PHOTOS_ALBUM_ID = 'AIeID-riC2_qP0DgMlCcZrt6jDL8_05BaWyr2_Sj9w_24YbQ
 
 let authyFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 
-export function setUpGoogleOAuth(
+export async function oauthGoogle(
   options: { clientId: string, clientSecret: string, tokenStore?: TokenStore }) {
-
-  const redirectUrl = `http://localhost:9999/callback`
 
   const client = new OAuth2Client({
       clientId: options.clientId,
       clientSecret: options.clientSecret,
-      redirectUrl: redirectUrl,
+      redirectUrl: `http://localhost:9999/callback`,
       tokenStore: options.tokenStore || new InMemoryTokenStore(),
       providerUrls: ProviderUrlsSupported.Google,
     }
   );
 
-  authyFetch = makeAuthyFetch(client, SCOPE.join(' '));
+  await obtainBearerToken({ client, scope: SCOPE, verbose: true});
 
+  // `authyFetch` is a global
+  authyFetch = await preAuthedFetch(client, SCOPE);
 }
 
 export async function listAlbums() {

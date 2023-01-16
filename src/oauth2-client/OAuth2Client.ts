@@ -22,7 +22,7 @@ export class OAuth2Client {
   protected _redirectURL: string
   public tokenStore: TokenStore
   private tokenUrl: string;
-  private authBaseUrl: string;
+  private userAuthBaseUrl: string;
 
   constructor(options: {
                 clientId: string,
@@ -36,7 +36,7 @@ export class OAuth2Client {
     this._clientSecret = options.clientSecret
     this._redirectURL = options.redirectUrl
     this.tokenStore = options.tokenStore
-    this.authBaseUrl = options.providerUrls.authBase
+    this.userAuthBaseUrl = options.providerUrls.userAuthBase
     this.tokenUrl = options.providerUrls.token
   }
 
@@ -49,40 +49,52 @@ export class OAuth2Client {
     return parseInt(url.port)
   }
 
+  get redirectPath(): string {
+    const url = new URL(this._redirectURL)
+    return url.pathname
+  }
+
   generateAuthUrl({
-                    access_type,
-                    prompt,
-                    response_type = "code",
                     scope
                   }: {
-    access_type: string;
-    prompt: string;
-    response_type?: string;
     scope: string;
   }) {
     const opts = {
-      access_type,
+      access_type: 'offline', // Google
+      token_access_type: 'offline', // Dropbox
+      prompt: 'consent',
+      response_type: 'code',
       scope,
-      prompt,
-      response_type,
       client_id: this._clientID,
       redirect_uri: this._redirectURL
     };
-    return `${this.authBaseUrl}?${buildQueryString(opts)}`;
+
+    return `${this.userAuthBaseUrl}?${buildQueryString(opts)}`;
   }
 
+  /**
+   * Exchange our original auth code for tokens
+   * @param authCode provided authCode from callback. Should be decoded if necessary.
+   *                 See decodeURIComponent
+   */
   async exchangeAuthCodeForToken(authCode: string): Promise<TokenResponse> {
 
-    const decodedAuthCode = decodeURIComponent(authCode);
-
     const data = {
-      code: decodedAuthCode,
+      code: authCode,
       client_id: this._clientID,
       client_secret: this._clientSecret,
       redirect_uri: this._redirectURL,
       grant_type: "authorization_code"
     };
 
+    /*
+    curl https://api.dropbox.com/oauth2/token \
+    -d code=<AUTHORIZATION_CODE> \
+    -d grant_type=authorization_code \
+    -d redirect_uri=<REDIRECT_URI> \
+    -u <APP_KEY>:<APP_SECRET>
+
+     */
     const res = await this.fetcher({
       url: this.tokenUrl,
       method: "POST",
@@ -148,8 +160,16 @@ export class OAuth2Client {
       client_secret: this._clientSecret,
       grant_type: "refresh_token"
     };
+    /*
+    curl https://api.dropbox.com/oauth2/token \
+    -d grant_type=refresh_token \
+    -d refresh_token=<REFRESH_TOKEN> \
+    -u <APP_KEY>:<APP_SECRET>
+
+     */
     const res = await this.fetcher({
-      url: this.authBaseUrl,
+      //url: this.userAuthBaseUrl,
+      url: this.tokenUrl,
       method: "POST",
       body: buildQueryString(data),
       headers: {
@@ -165,6 +185,8 @@ export class OAuth2Client {
         statusText
       })}`);
     }
+    // Dropbox does not return a new refresh token, per their docs.
+    tokens.refresh_token ||= refreshToken
     this.saveTokens(tokens)
     return {
       tokens,

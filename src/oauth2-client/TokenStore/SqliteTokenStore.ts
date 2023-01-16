@@ -1,5 +1,6 @@
 import {Database} from 'sqlite-async'
 import {Storable, TokenStore} from "./index";
+import {ProviderKey} from "../ProviderUrlsSupported";
 
 
 export class SqliteTokenStore implements TokenStore {
@@ -9,14 +10,14 @@ export class SqliteTokenStore implements TokenStore {
   private _expiry_date: number = 0
 
   static async setup({db, provider}:
-                       { db: Database, provider: string }) {
+                       { db: Database, provider: ProviderKey }) {
     const store = new SqliteTokenStore(db, provider)
     await store.createTableOAuthTokens()
     await store.loadFromDb()
     return store
   }
 
-  private constructor(private db: Database, readonly provider: string) {
+  private constructor(private db: Database, readonly provider: ProviderKey) {
   }
 
   async save(tokens: Storable) {

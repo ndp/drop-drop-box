@@ -7,7 +7,7 @@ import figlet from 'figlet'
 import {Command} from 'commander'
 import {Database} from 'sqlite-async'
 import {createTables, stats} from './db'
-import {createMediaItem, listAlbums, listMediaItems, setUpGoogleOAuth, uploadMedia} from './google-photos'
+import {createMediaItem, listAlbums, listMediaItems, oauthGoogle, uploadMedia} from './google-photos'
 import {
   insertSearchPath,
   readOnePendingSearchPath,
@@ -31,35 +31,46 @@ console.log(
 );
 
 
-export const dropboxLogin = new Command('dropbox')
-  .description('oauthDropbox')
+export const dropboxLogin = new Command('login-dropbox')
+  .description('Log in to Dropbox')
   .action(async () => {
-    const store: TokenStore = new InMemoryTokenStore()
+    const db = await getDatabase()
+    const tokenStore: TokenStore = await SqliteTokenStore.setup({db, provider: 'Dropbox'})
     await oauthDropbox({
       clientId: process.env.DROPBOX_CLIENT_ID!,
       clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
-      store
+      tokenStore
     })
-    console.dir(store)
+  })
+
+export const googleLogin = new Command('login-google')
+  .description('Log in to Google')
+  .action(async () => {
+    const db = await getDatabase()
+    const tokenStore: TokenStore = await SqliteTokenStore.setup({db, provider: 'Google'})
+    await oauthGoogle({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      tokenStore
+    })
   })
 
 export const status = new Command('status')
   .description('show current status')
   .action(async () => {
-    console.log('status!')
     const db = await getDatabase()
-    console.log('stats', await stats(db))
+    console.log('*** Stats ***', await stats(db))
   })
 
-export const resetAuth = new Command('reset-auth')
-  .description('reset the persisted auth and log in again')
+export const resetAuth = new Command('logout')
+  .description('Reset the persisted auth and log in again')
   .action(async () => {
     const db = await getDatabase()
-    let ts = await SqliteTokenStore.setup({db, provider: 'google'})
+    let ts = await SqliteTokenStore.setup({db, provider: 'Google'})
     await ts.resetTokens()
     console.log('Google tokens cleared.')
 
-    ts = await SqliteTokenStore.setup({db, provider: 'dropbox'})
+    ts = await SqliteTokenStore.setup({db, provider: 'Dropbox'})
     await ts.resetTokens()
     console.log('Dropbox tokens cleared.')
   })
@@ -77,18 +88,18 @@ const google = new Command('google')
     const item = await readOneDropboxItemById(db, 7)
     console.log({item})
 
-    const accessToken = await oauthDropbox({
+    await oauthDropbox({
       clientId: process.env.DROPBOX_CLIENT_ID!,
       clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
-      store: new InMemoryTokenStore()
+      tokenStore: await SqliteTokenStore.setup({db, provider: 'Dropbox'})
     })
 
     const download = await getStream(item.path_lower)
 
-    setUpGoogleOAuth({
+    oauthGoogle({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      tokenStore: await SqliteTokenStore.setup({db, provider: 'google'})
+      tokenStore: await SqliteTokenStore.setup({db, provider: 'Google'})
     })
     const uploadToken = await uploadMedia(download)
     console.log({uploadToken: JSON.stringify(uploadToken)})
@@ -132,7 +143,7 @@ export const discover = new Command('discover')
     await oauthDropbox({
       clientId: process.env.DROPBOX_CLIENT_ID!,
       clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
-      store: new InMemoryTokenStore()
+      tokenStore: new InMemoryTokenStore()
     })
 
 
@@ -188,11 +199,14 @@ command
   .option('-db, --database <db>', 'SQLLite3 database path', './dropbox-db.sqlite3')
   .option('-V, --verbose', 'Lotsa logging', false)
   .addCommand(status)
-  .addCommand(add)
-  .addCommand(dropboxLogin)
-  .addCommand(discover)
   .addCommand(folders)
+
+  .addCommand(dropboxLogin)
+  .addCommand(googleLogin)
   .addCommand(resetAuth)
+
+  .addCommand(add)
+  .addCommand(discover)
   .addCommand(google)
   .parse(process.argv);
 

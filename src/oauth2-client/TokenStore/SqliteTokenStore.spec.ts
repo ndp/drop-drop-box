@@ -9,7 +9,7 @@ describe('SqliteTokenStore', () => {
 
   specify('default (missing) values', async () => {
     const db = await Database.open('');
-    store = await SqliteTokenStore.setup({db, provider: 'my provider'})
+    store = await SqliteTokenStore.setup({db, provider: 'my provider' as 'Dropbox'})
     expect(store.expiry_date).to.equal(0)
     expect(store.access_token).to.equal('')
     expect(store.refresh_token).to.equal('')
@@ -18,7 +18,7 @@ describe('SqliteTokenStore', () => {
 
   specify('save and restore', async () => {
     const db = await Database.open('');
-    store = await SqliteTokenStore.setup({db, provider: 'my provider'})
+    store = await SqliteTokenStore.setup({db, provider: 'my provider' as 'Dropbox'})
     await store.save({
       access_token: "ACC355",
       expiry_date: 7,
@@ -29,7 +29,7 @@ describe('SqliteTokenStore', () => {
     expect(store.refresh_token).to.equal('R3FR35H')
 
     // Make a new store and try it
-    store = await SqliteTokenStore.setup({db, provider: 'my provider'})
+    store = await SqliteTokenStore.setup({db, provider: 'my provider' as 'Dropbox'})
     expect(store.expiry_date).to.equal(7)
     expect(store.access_token).to.equal('ACC355')
     expect(store.refresh_token).to.equal('R3FR35H')
@@ -37,7 +37,7 @@ describe('SqliteTokenStore', () => {
 
   specify('save multiple times', async () => {
     const db = await Database.open('');
-    store = await SqliteTokenStore.setup({db, provider: 'my provider'})
+    store = await SqliteTokenStore.setup({db, provider: 'my provider' as 'Dropbox'})
     await store.save({
       access_token: "ACC355 1",
       expiry_date: 1,
@@ -58,7 +58,7 @@ describe('SqliteTokenStore', () => {
     expect(store.refresh_token).to.equal('R3FR35H 3')
 
     // Make a new store and try it
-    store = await SqliteTokenStore.setup({db, provider: 'my provider'})
+    store = await SqliteTokenStore.setup({db, provider: 'my provider' as 'Dropbox'})
     expect(store.expiry_date).to.equal(3)
     expect(store.access_token).to.equal('ACC355 3')
     expect(store.refresh_token).to.equal('R3FR35H 3')
@@ -66,14 +66,14 @@ describe('SqliteTokenStore', () => {
 
   specify('multiple providers', async () => {
     const db = await Database.open('');
-    let storeA = await SqliteTokenStore.setup({db, provider: 'A'})
+    let storeA = await SqliteTokenStore.setup({db, provider: 'A' as 'Dropbox'})
     await storeA.save({
       access_token: "ACC355 A",
       expiry_date: 5,
       refresh_token: "R3FR35H A"
     })
 
-    let storeB = await SqliteTokenStore.setup({db, provider: 'B'})
+    let storeB = await SqliteTokenStore.setup({db, provider: 'B' as 'Dropbox'})
     await storeB.save({
       access_token: "ACC355 B",
       expiry_date: 10,
@@ -82,8 +82,8 @@ describe('SqliteTokenStore', () => {
 
     // Make sure these are separate from one another
     await storeA.resetTokens()
-    storeA = await SqliteTokenStore.setup({db, provider: 'A'})
-    storeB = await SqliteTokenStore.setup({db, provider: 'B'})
+    storeA = await SqliteTokenStore.setup({db, provider: 'A' as 'Dropbox'})
+    storeB = await SqliteTokenStore.setup({db, provider: 'B' as 'Dropbox'})
 
     expect(storeA.expiry_date).to.equal(0)
     expect(storeA.access_token).to.equal('')
@@ -96,7 +96,7 @@ describe('SqliteTokenStore', () => {
 
   specify('resetTokens', async () => {
     const db = await Database.open('');
-    store = await SqliteTokenStore.setup({db, provider: 'my provider'})
+    store = await SqliteTokenStore.setup({db, provider: 'my provider' as 'Dropbox'})
     await store.save({
       access_token: "ACC355",
       expiry_date: 7,

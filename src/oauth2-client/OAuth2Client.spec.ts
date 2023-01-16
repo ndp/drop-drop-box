@@ -15,7 +15,7 @@ describe("OAuth2Client", function () {
         redirectUrl: "https://website.com:9999/callback",
         tokenStore: this.tokenStore,
         providerUrls: {
-          authBase: AUTH_BASE_URL,
+          userAuthBase: AUTH_BASE_URL,
           token: 'http//gimmetoken.com',
         }
       }
@@ -106,10 +106,10 @@ describe("OAuth2Client", function () {
       this.client.exchangeAuthCodeForToken.restore();
     });
 
-    it("decodes auth code first before stringifying to be sent in request", function () {
-      const authCode = "4%2FswEmlFcE4vP6BCXY_xmc4kUUgzB3uqB_b9uVLisqrr6-ADVVQEg7a6LojiIkyWq1JY4QhAGWbe5ektjTO";
+    it("encodes auth code", function () {
+      const authCode = "4%2FY_x";
       this.client.exchangeAuthCodeForToken(authCode);
-      expect(this.client.fetcher.getCall(0).args[0].body).to.include(authCode);
+      expect(this.client.fetcher.getCall(0).args[0].body).to.include(encodeURIComponent(authCode));
     });
   })
 });

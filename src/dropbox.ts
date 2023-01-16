@@ -4,8 +4,8 @@ import {MimeType} from "./google-photos";
 import FileMetadataReference = files.FileMetadataReference;
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {OAuth2Client} from "./oauth2-client";
-import {obtainBearerToken} from "./oauth2-client/AuthyFetch";
 import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
+import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
 
 export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 
@@ -15,23 +15,23 @@ let dropboxApi: Dropbox;
 export async function oauthDropbox({
                                      clientId,
                                      clientSecret,
-                                     store
+                                     tokenStore
                                    }: {
   clientId: string,
   clientSecret: string,
-  store: TokenStore
+  tokenStore: TokenStore
 }): Promise<void> {
 
   const client = new OAuth2Client({
       clientId,
       clientSecret,
+      tokenStore,
       redirectUrl: `http://localhost:9998/callback`,
-      tokenStore: store,
       providerUrls: ProviderUrlsSupported.Dropbox
     }
   );
 
-  const accessToken = await obtainBearerToken(client, '');
+  const accessToken = await obtainBearerToken({client, scope: '', verbose: true});
 
   // Set up the `dropboxApi` global
   dropboxApi = new Dropbox({

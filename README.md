@@ -52,8 +52,9 @@ Visibility into what's happening.
 
 ## Tasks
 
-- [ ] Dropbox oauth
-- [ ] remove access_token from store
+- [x] Dropbox oauth
+- [ ] Dropbox oauth refresh token
+- [ ] add scope to store
 - [ ] Filter out images that can be processed
 - [ ] Keep a list of non-images... what to do?
 - [ ] Mark as copied on Dropbox, or remove
