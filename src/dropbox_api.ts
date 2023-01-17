@@ -1,6 +1,6 @@
 import {Dropbox, files} from 'dropbox'
 import fetch from "node-fetch";
-import {MimeType} from "./google-photos";
+import {MimeType} from "./google-photos_api";
 import FileMetadataReference = files.FileMetadataReference;
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {OAuth2Client} from "./oauth2-client";

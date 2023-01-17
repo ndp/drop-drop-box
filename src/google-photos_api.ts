@@ -10,12 +10,12 @@ import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
 
 // was https://accounts.google.com/o/oauth2/auth
 const SCOPE = [
-  'https://www.googleapis.com/auth/photoslibrary',
-  'https://www.googleapis.com/auth/photoslibrary.readonly',
-  'https://www.googleapis.com/auth/photoslibrary.appendonly'
+  // 'https://www.googleapis.com/auth/photoslibrary',
+  // 'https://www.googleapis.com/auth/photoslibrary.readonly',
+  'https://www.googleapis.com/auth/photoslibrary.appendonly',
+  'https://www.googleapis.com/auth/photoslibrary.sharing',
+  'https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata'
 ].join(' ')
-// const GOOGLE_PHOTOS_ALBUM_NAME = 'Imported from Dropbox'
-const GOOGLE_PHOTOS_ALBUM_ID = 'AIeID-riC2_qP0DgMlCcZrt6jDL8_05BaWyr2_Sj9w_24YbQlwtLdAh_KdJUZ_1vQpCvCxAFFwkb'
 
 //TOKEN_URL = 'https://www.googleapis.com/oauth2/v4/token'
 
@@ -34,7 +34,7 @@ export async function oauthGoogle(
     }
   );
 
-  await obtainBearerToken({ client, scope: SCOPE, verbose: true});
+  await obtainBearerToken({client, scope: SCOPE, verbose: true});
 
   // `authyFetch` is a global
   authyFetch = await preAuthedFetch(client, SCOPE);
@@ -102,8 +102,9 @@ type MediaCreationResponse = {
 
 
 export async function createMediaItem(
-  {description, fileName, uploadToken}:
+  {description, fileName, uploadToken, albumId}:
     {
+      albumId: string
       description: string,
       fileName: string,
       uploadToken: UploadToken
@@ -113,7 +114,7 @@ export async function createMediaItem(
     headers: {'Content-type': 'application/json'},
     method: 'POST',
     body: JSON.stringify({
-      "albumId": GOOGLE_PHOTOS_ALBUM_ID,
+      "albumId": albumId,
       "newMediaItems": [
         {
           "description": description,
@@ -131,4 +132,28 @@ export async function createMediaItem(
     // else
     //   throw `${response.status} ${response.statusText}`
   })
+}
+
+// https://developers.google.com/photos/library/reference/rest/v1/albums/create
+export async function createAlbum(title: string): Promise<string> {
+  const res = await authyFetch('https://photoslibrary.googleapis.com/v1/albums', {
+    headers: {'Content-type': 'application/json'},
+    method: 'POST',
+    body: JSON.stringify({
+      "album": {
+        "isWriteable": true,
+        "title": title
+      }
+    })
+  })
+  const json = await res.json()
+  return json.id
+  /* Looks like:
+  {
+  "id": "AIeID-r-TMEhOjbgac9xmV5pYtFdTN6qFCdWcJCrKrKh71HP37H0gs-H46ciZ1uhZozC7WvQLcq9",
+  "title": "Imported from Dropboxpodod",
+  "productUrl": "https://photos.google.com/lr/album/AIeID-r-TMEhOjbgac9xmV5pYtFdTN6qFCdWcJCrKrKh71HP37H0gs-H46ciZ1uhZozC7WvQLcq9",
+  "isWriteable": true
+}
+   */
 }

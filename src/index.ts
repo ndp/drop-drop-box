@@ -4,10 +4,10 @@
 import * as dotenv from 'dotenv'
 import Chalk from 'chalk'
 import figlet from 'figlet'
-import {Command} from 'commander'
+import {Argument, Command} from 'commander'
 import {Database} from 'sqlite-async'
 import {createTables, stats} from './db'
-import {createMediaItem, listAlbums, listMediaItems, oauthGoogle, uploadMedia} from './google-photos'
+import {createAlbum, createMediaItem, listAlbums, listMediaItems, oauthGoogle, uploadMedia} from './google-photos_api'
 import {
   insertSearchPath,
   readOnePendingSearchPath,
@@ -16,11 +16,12 @@ import {
   updateSearchPathStatus
 } from "./db/search_paths";
 import {lpad} from "./util";
-import {getStream, listFolderResult, oauthDropbox, selectFilesFromResult} from "./dropbox";
+import {getStream, listFolderResult, oauthDropbox, selectFilesFromResult} from "./dropbox_api";
 import {insertDropboxItem, readOneDropboxItemById} from "./db/dropbox_items";
 import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
+import {getLastAlbumId, saveAlbum} from "./db/google_albums";
 
 dotenv.config()
 
@@ -31,50 +32,76 @@ console.log(
 );
 
 
-export const dropboxLogin = new Command('login-dropbox')
-  .description('Log in to Dropbox')
-  .action(async () => {
+async function loginDropbox(db: Database) {
+  const tokenStore: TokenStore = await SqliteTokenStore.setup({db, provider: 'Dropbox'})
+  await oauthDropbox({
+    clientId: process.env.DROPBOX_CLIENT_ID!,
+    clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
+    tokenStore
+  })
+}
+
+async function loginGoogle(db: Database) {
+  const tokenStore: TokenStore = await SqliteTokenStore.setup({db, provider: 'Google'})
+  await oauthGoogle({
+    clientId: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    tokenStore
+  })
+}
+
+export const loginCmd = new Command('login')
+  .argument('[google|dropbox]', 'provide to authenticate', 'all')
+  .description('Log in')
+  .action(async (provider: string) => {
     const db = await getDatabase()
-    const tokenStore: TokenStore = await SqliteTokenStore.setup({db, provider: 'Dropbox'})
-    await oauthDropbox({
-      clientId: process.env.DROPBOX_CLIENT_ID!,
-      clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
-      tokenStore
-    })
+
+    if (provider.match(/(google|all)/i)) {
+      await loginGoogle(db);
+    }
+    if (provider.match(/(dropbox|all)/i)) {
+      await loginDropbox(db);
+    }
   })
 
-export const googleLogin = new Command('login-google')
-  .description('Log in to Google')
-  .action(async () => {
+export const logoutCmd = new Command('logout')
+  .argument('[google|dropbox]', 'provide to authenticate', 'all')
+  .description('Reset the persisted auth and log in again')
+  .action(async (provider: string) => {
     const db = await getDatabase()
-    const tokenStore: TokenStore = await SqliteTokenStore.setup({db, provider: 'Google'})
-    await oauthGoogle({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      tokenStore
-    })
+
+    if (provider.match(/(all|google)/i)) {
+      const ts = await SqliteTokenStore.setup({db, provider: 'Google'})
+      await ts.resetTokens()
+      console.log('Google tokens cleared.')
+    }
+
+    if (provider.match(/(all|dropbox)/i)) {
+      const ts = await SqliteTokenStore.setup({db, provider: 'Dropbox'})
+      await ts.resetTokens()
+      console.log('Dropbox tokens cleared.')
+    }
   })
 
-export const status = new Command('status')
-  .description('show current status')
+
+export const statsCmd = new Command('stats')
+  .description('show current DB stats')
   .action(async () => {
     const db = await getDatabase()
     console.log('*** Stats ***', await stats(db))
   })
 
-export const resetAuth = new Command('logout')
-  .description('Reset the persisted auth and log in again')
-  .action(async () => {
+const createAlbumCmd = new Command('album')
+  .description('create new album on Google photos')
+  .argument('name', 'name of album')
+  .action(async (name: string) => {
     const db = await getDatabase()
-    let ts = await SqliteTokenStore.setup({db, provider: 'Google'})
-    await ts.resetTokens()
-    console.log('Google tokens cleared.')
+    await loginGoogle(db);
 
-    ts = await SqliteTokenStore.setup({db, provider: 'Dropbox'})
-    await ts.resetTokens()
-    console.log('Dropbox tokens cleared.')
+    const albumId = await createAlbum(name)
+
+    await saveAlbum(db, albumId, name)
   })
-
 
 const google = new Command('google')
   .description('google stuff')
@@ -85,33 +112,34 @@ const google = new Command('google')
     // console.log(JSON.stringify({mediaItems}))
 
     const db = await getDatabase()
-    const item = await readOneDropboxItemById(db, 7)
-    console.log({item})
 
-    await oauthDropbox({
-      clientId: process.env.DROPBOX_CLIENT_ID!,
-      clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
-      tokenStore: await SqliteTokenStore.setup({db, provider: 'Dropbox'})
-    })
+    await loginDropbox(db);
+    await loginGoogle(db);
 
-    const download = await getStream(item.path_lower)
+    const albumId = await getLastAlbumId(db)
 
-    oauthGoogle({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      tokenStore: await SqliteTokenStore.setup({db, provider: 'Google'})
-    })
-    const uploadToken = await uploadMedia(download)
-    console.log({uploadToken: JSON.stringify(uploadToken)})
 
-    const response = await createMediaItem({
-      description: '',
-      fileName: item.path_lower,
-      uploadToken: uploadToken
-    })
-    console.log({response, response2: JSON.stringify(response)})
-    // const albums = await listAlbums()
-    // console.log(albums)
+
+    async function transfer(dropboxItemId: number) {
+      const item = await readOneDropboxItemById(db, dropboxItemId)
+      const download = await getStream(item.path_lower)
+      const uploadToken = await uploadMedia(download)
+      console.log({uploadToken: JSON.stringify(uploadToken)})
+
+      const response = await createMediaItem({
+        albumId,
+        description: '',
+        fileName: item.path_lower,
+        uploadToken: uploadToken
+      })
+      // console.log({response, response2: JSON.stringify(response)})
+    }
+
+    await transfer(8);
+    await transfer(9);
+    await transfer(10);
+    await transfer(11);
+    await transfer(12);
   })
 
 
@@ -133,21 +161,19 @@ export const folders = new Command('folders')
     for (const p of searchPaths)
       console.log(`${lpad(p.status, 15)}   ${p.path}`)
   })
-export const discover = new Command('discover')
+export const discoverCmd = new Command('discover')
   .argument('[n]', 'number of Dropbox folders to scan (default 1)')
   .description('discover new Dropbox files in added folders')
   .action(async (n) => {
 
     if (!n) n = 1
 
+    const db = await getDatabase()
     await oauthDropbox({
       clientId: process.env.DROPBOX_CLIENT_ID!,
       clientSecret: process.env.DROPBOX_CLIENT_SECRET!,
-      tokenStore: new InMemoryTokenStore()
+      tokenStore: await SqliteTokenStore.setup({db, provider: 'Dropbox'})
     })
-
-
-    const db = await getDatabase()
 
     try {
       for (let i = 0; i < n; i++) {
@@ -179,7 +205,7 @@ export const discover = new Command('discover')
           } else {
             await updateSearchPathStatus(db, searchPathId, 'DONE')
           }
-          for (let f of files) await insertDropboxItem(db, f)
+          for (let f of files) await insertDropboxItem(db, f, searchPathId)
           // console.log(files.map(f => f.name));
         })
       } catch (e) {
@@ -198,15 +224,15 @@ command
   .description("CLI for transferring files from Dropbox to Google Photos")
   .option('-db, --database <db>', 'SQLLite3 database path', './dropbox-db.sqlite3')
   .option('-V, --verbose', 'Lotsa logging', false)
-  .addCommand(status)
+  .addCommand(statsCmd)
   .addCommand(folders)
 
-  .addCommand(dropboxLogin)
-  .addCommand(googleLogin)
-  .addCommand(resetAuth)
+  .addCommand(loginCmd)
+  .addCommand(logoutCmd)
 
   .addCommand(add)
-  .addCommand(discover)
+  .addCommand(discoverCmd)
+  .addCommand(createAlbumCmd)
   .addCommand(google)
   .parse(process.argv);
 
@@ -214,12 +240,7 @@ command
 export async function getDatabase() {
   const dbPath = command.getOptionValue('database');
   const db = await Database.open(dbPath)
-  await db.get<{ C: number }>('SELECT COUNT(*) AS C FROM dropbox_items')
-    .then((r) => console.log(`Using database with ${JSON.stringify(r.C)} items`))
-    .catch(async () => {
-      console.log('creating tables')
-      await createTables(db)
-    })
+  await createTables(db)
   return db
 }
 

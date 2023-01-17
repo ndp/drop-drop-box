@@ -7,7 +7,7 @@ import {
   readOneDropboxItemByContentHash,
   readOneDropboxItemById
 } from "./dropbox_items";
-import {DropboxFileImport} from "../dropbox";
+import {DropboxFileImport} from "../dropbox_api";
 
 
 // function mockUpDropboxItem() {

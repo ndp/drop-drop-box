@@ -20,7 +20,7 @@ interface Count {
 
 
 export async function createTableSearchPaths(db: Database) {
-  await db.exec(`CREATE TABLE search_paths (
+  await db.exec(`CREATE TABLE IF NOT EXISTS search_paths (
                            id INTEGER PRIMARY KEY,
                            path varchar(1024) NOT NULL UNIQUE,
                            status varchar(20) NOT NULL DEFAULT "ENQUEUED",
@@ -93,4 +93,8 @@ export async function readSearchPathStats(db: Database) {
 
 
   }
+}
+
+export async function cleanUp(db: Database) {
+  await db.exec('DELETE FROM search_paths WHERE status=\'FAILED\';')
 }
