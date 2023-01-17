@@ -56,14 +56,14 @@ describe('dropbox_items', () => {
   specify('insertDropboxItem', async () => {
 
     const file = mockUpDropboxFileImport();
-    const id = await insertDropboxItem(db, file)
+    const id = await insertDropboxItem(db, file, 9)
 
     const red = await readOneDropboxItemByContentHash(db, file.content_hash!);
     expect(red.id).to.equal(id)
 
 
     // insert again?
-    const id2 = await insertDropboxItem(db, file)
+    const id2 = await insertDropboxItem(db, file, 9)
     expect(id2).to.equal(id)
   })
 
@@ -73,7 +73,7 @@ describe('dropbox_items', () => {
     expect(await readOneDropboxItemByDbId(db, 1)).to.equal(null)
 
     const file = mockUpDropboxFileImport();
-    const id = await insertDropboxItem(db, file)
+    const id = await insertDropboxItem(db, file, 9)
 
     const red = await readOneDropboxItemByDbId(
       db,
@@ -90,7 +90,7 @@ describe('dropbox_items', () => {
     expect(await readOneDropboxItemByContentHash(db, 'not there')).to.equal(null)
 
     const file = mockUpDropboxFileImport();
-    const id = await insertDropboxItem(db, file)
+    const id = await insertDropboxItem(db, file, 9)
 
     const red = await readOneDropboxItemByContentHash(
       db,
@@ -101,12 +101,12 @@ describe('dropbox_items', () => {
 
 
   specify('dropboxItemsStats', async () => {
-    expect(await dropboxItemsStats(db)).to.equal(0)
+    expect(await dropboxItemsStats(db)).to.deep.equal({})
     const file = mockUpDropboxFileImport();
-    const id = await insertDropboxItem(db, file)
+    const id = await insertDropboxItem(db, file, 9)
 
     expect(id).to.equal(1)
-    expect(await dropboxItemsStats(db)).to.equal(1)
+    expect(await dropboxItemsStats(db)).to.deep.equal({ FOUND: 1})
 
   })
 
