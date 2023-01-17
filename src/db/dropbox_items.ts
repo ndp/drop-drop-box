@@ -1,5 +1,5 @@
 import {Database} from 'sqlite-async'
-import { DropboxFileImport} from '../dropbox_api'
+import {DropboxFileImport} from '../dropbox_api'
 
 interface Count {
   ['COUNT(*)']: number
@@ -13,6 +13,8 @@ export type DropboxItemRecord = {
   path_lower: string,
   content_hash: string,
 }
+
+type Status = 'FOUND' | 'TRANSFERRED' | 'MISSING'
 
 export async function createTableDropboxItems(db: Database) {
   await db.exec(`CREATE TABLE IF NOT EXISTS dropbox_items (
@@ -41,8 +43,11 @@ export async function createTableDropboxItems(db: Database) {
 }
 
 export async function dropboxItemsStats(db: Database) {
-  const items = (await db.get<Count>('SELECT COUNT(*) FROM dropbox_items;'))['COUNT(*)']
-  return items
+  const items = (await db.all<{ status: Status, count: number }>('SELECT status, COUNT(*) as count FROM dropbox_items GROUP BY status;'))
+  return items.reduce((m, r) => {
+    m[r.status] = r.count
+    return m
+  }, {} as Record<Status, number>)
 }
 
 export async function insertDropboxItem(db: Database, file: DropboxFileImport, searchPathId: number): Promise<number> {
@@ -61,11 +66,30 @@ export async function insertDropboxItem(db: Database, file: DropboxFileImport, s
     .then(result => result.lastID)
 }
 
-export async function readOneDropboxItemById(db: Database, id
+export async function readOneDropboxItemByDbId(db: Database, id
   : number) {
   const existing = await db.get<DropboxItemRecord>('SELECT * FROM dropbox_items WHERE id=?', [id])
 
   return existing || null
+}
+
+export async function updateDropboxItemStatus(db: Database, dbId: number, newStatus: Status) {
+  // console.log(`updating search path status #${searchPathId} to ${newStatus}`)
+  return await db.run(
+    'UPDATE dropbox_items ' +
+    'SET status=? ' +
+    'WHERE id=?', [newStatus, dbId])
+}
+
+
+export async function findTransferrable(db: Database, max = 1) {
+  const result = await db.all<{ ID: number }>(`
+  SELECT id
+  FROM dropbox_items
+  WHERE status = "FOUND"
+  ORDER BY RANDOM()
+  LIMIT ?`, [max])
+  return result.map(r => r.ID)
 }
 
 export async function readOneDropboxItemByContentHash(db: Database, contentHash: string) {

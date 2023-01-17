@@ -53,14 +53,13 @@ Visibility into what's happening.
 ## Tasks
 
 - [x] Dropbox oauth
-- [ ] Dropbox oauth refresh token
-- [ ] add scope to store
+- [x] Dropbox oauth refresh token
+- [ ] add scope to store / incremental authorization
 - [ ] Filter out images that can be processed
 - [ ] Keep a list of non-images... what to do?
 - [ ] Mark as copied on Dropbox, or remove
 - [ ] import into folder on Google Photos
 - https://github.com/red-data-tools/YouPlot
-
 
 
 ## Questions

@@ -5,7 +5,7 @@ import {
   dropboxItemsStats,
   insertDropboxItem,
   readOneDropboxItemByContentHash,
-  readOneDropboxItemById
+  readOneDropboxItemByDbId
 } from "./dropbox_items";
 import {DropboxFileImport} from "../dropbox_api";
 
@@ -69,13 +69,13 @@ describe('dropbox_items', () => {
 
   specify('readOneDropboxItemById', async () => {
 
-    expect(await readOneDropboxItemById(db, 0)).to.equal(null)
-    expect(await readOneDropboxItemById(db, 1)).to.equal(null)
+    expect(await readOneDropboxItemByDbId(db, 0)).to.equal(null)
+    expect(await readOneDropboxItemByDbId(db, 1)).to.equal(null)
 
     const file = mockUpDropboxFileImport();
     const id = await insertDropboxItem(db, file)
 
-    const red = await readOneDropboxItemById(
+    const red = await readOneDropboxItemByDbId(
       db,
       id);
     expect(red.id).to.equal(id)

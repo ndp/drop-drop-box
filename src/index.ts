@@ -4,10 +4,10 @@
 import * as dotenv from 'dotenv'
 import Chalk from 'chalk'
 import figlet from 'figlet'
-import {Argument, Command} from 'commander'
+import {Command} from 'commander'
 import {Database} from 'sqlite-async'
 import {createTables, stats} from './db'
-import {createAlbum, createMediaItem, listAlbums, listMediaItems, oauthGoogle, uploadMedia} from './google-photos_api'
+import {createAlbum, createMediaItem, oauthGoogle, uploadMedia} from './google-photos_api'
 import {
   insertSearchPath,
   readOnePendingSearchPath,
@@ -16,11 +16,21 @@ import {
   updateSearchPathStatus
 } from "./db/search_paths";
 import {lpad} from "./util";
-import {getStream, listFolderResult, oauthDropbox, selectFilesFromResult} from "./dropbox_api";
-import {insertDropboxItem, readOneDropboxItemById} from "./db/dropbox_items";
+import {
+  getStream,
+  listFolderResult,
+  markTransferredOnDropbox,
+  oauthDropbox,
+  selectFilesFromResult
+} from "./dropbox_api";
+import {
+  findTransferrable,
+  insertDropboxItem,
+  readOneDropboxItemByDbId,
+  updateDropboxItemStatus
+} from "./db/dropbox_items";
 import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
 import {TokenStore} from "./oauth2-client/TokenStore";
-import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
 import {getLastAlbumId, saveAlbum} from "./db/google_albums";
 
 dotenv.config()
@@ -103,13 +113,12 @@ const createAlbumCmd = new Command('album')
     await saveAlbum(db, albumId, name)
   })
 
-const google = new Command('google')
-  .description('google stuff')
-  .action(async () => {
+const transferCmd = new Command('transfer')
+  .description('transfer queued files from Dropbox to Google Photos')
+  .argument('[n]', 'number files to move')
+  .action(async (max) => {
 
-
-    //const mediaItems = await listMediaItems()
-    // console.log(JSON.stringify({mediaItems}))
+    if (!max) max = 1
 
     const db = await getDatabase()
 
@@ -118,28 +127,40 @@ const google = new Command('google')
 
     const albumId = await getLastAlbumId(db)
 
+    async function transfer(dbId: number) {
+      console.log(`Transferring item id ${dbId}:`)
+      const item = await readOneDropboxItemByDbId(db, dbId)
+      try {
+        const downloadStream = await getStream(item.path_lower)
 
+        const uploadToken = await uploadMedia(downloadStream)
+        // console.log({uploadToken: JSON.stringify(uploadToken)})
 
-    async function transfer(dropboxItemId: number) {
-      const item = await readOneDropboxItemById(db, dropboxItemId)
-      const download = await getStream(item.path_lower)
-      const uploadToken = await uploadMedia(download)
-      console.log({uploadToken: JSON.stringify(uploadToken)})
+        const googleResponse = await createMediaItem({
+          albumId,
+          description: '',
+          fileName: item.path_lower,
+          uploadToken: uploadToken
+        })
 
-      const response = await createMediaItem({
-        albumId,
-        description: '',
-        fileName: item.path_lower,
-        uploadToken: uploadToken
-      })
-      // console.log({response, response2: JSON.stringify(response)})
+        const dropboxResult = await markTransferredOnDropbox(item.path_lower)
+        const dbResponse = await updateDropboxItemStatus(db, dbId, 'TRANSFERRED')
+
+        console.log('   ... success')
+        // console.log('---> ', {googleResponse, dropboxResult, dbResponse})
+
+      } catch (e: any) {
+        if (e.status === 409) {
+          console.error(`Skipping MISSING item on Dropbox: ${item.path_lower}`)
+          await updateDropboxItemStatus(db, dbId, 'MISSING')
+        } else
+          throw e
+      }
     }
 
-    await transfer(8);
-    await transfer(9);
-    await transfer(10);
-    await transfer(11);
-    await transfer(12);
+    const toTransfer = await findTransferrable(db, max);
+
+    for (const id of toTransfer) await transfer(id);
   })
 
 
@@ -233,7 +254,7 @@ command
   .addCommand(add)
   .addCommand(discoverCmd)
   .addCommand(createAlbumCmd)
-  .addCommand(google)
+  .addCommand(transferCmd)
   .parse(process.argv);
 
 

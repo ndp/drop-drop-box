@@ -87,40 +87,17 @@ function pathToMimeType(path: string): MimeType {
 export async function getStream(path: string):
   Promise<{ stream: NodeJS.ReadableStream, mimeType: MimeType }> {
 
-
   const {result} = await dropboxApi.filesDownload({path})
   const stream = (result as unknown as { fileBinary: NodeJS.ReadableStream }).fileBinary
   return {stream, mimeType: pathToMimeType(path)}
-
-
-  const r1 = await dropboxApi.filesGetTemporaryLink({path});
-  console.log(JSON.stringify({dropboxResponse: r1}))
-
-  dropboxApi.filesTagsAdd({path, tag_text: 'downloading'})
-
-  const r2 = await fetch(r1.result.link)
-  await r2.blob()
-  console.log('status', r2.status, r2.statusText)
-  console.log('heders', JSON.stringify(r2.headers.get('mime-type')))
-  console.log('repsonse', JSON.stringify(r2))
-  // return {stream: r2.body, mediaInfo: r1.result.metadata.media_info as MediaInfoMetadata}
 }
 
-
-function filesMoveV2() {
-  // dropbox.filesMoveV2({from_path, to_path,})
+// See https://api.dropboxapi.com/2/files/move_v2
+export async function markTransferredOnDropbox(from_path: string) {
+  const response = await dropboxApi.filesMoveV2({
+    from_path,
+    to_path: `/Migrated${from_path}`,
+    allow_shared_folder: true
+  })
+  return response.result
 }
-
-/*
-
-  response: DropboxResponse {
-    status: 200,
-    headers: Headers { [Symbol(map)]: [Object: null prototype] },
-    result: {
-      entries: [Array],
-      cursor: 'AAGuyC5BUmpLoWfKCZy4mD4etRTa7i9jp2fA7i8gyf6y0F55IIJHt1Ic3ec3Bx5ariumhfCEO6JVxX1f_XwAo385Xf3nPpevoxZsJulZfTn3sh_veU-GcoBU7afboG9a5aEPi2P7fRL52dTojzEY9y_76vjJbuv7x-f1S6rt0TomVihiIEeXmM6wHeLcBj9Ci00Tg-FRgDpuCIARYl4XoYP6oMJa9RHx61vm04t6fzydKIVoh2FyEncBoQd_TgeO3cIInFb0U-honB2oOR85h9JGituVthpb3EA0_zjki4yerg',
-      has_more: false
-    }
-  }
-
- */
