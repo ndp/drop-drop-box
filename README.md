@@ -55,6 +55,7 @@ Commands:
 - [ ] ability to set and see dropbox archive folder-- or NO folder for no movement
 - [x] Mark as copied on Dropbox, or remove
 - [x] import into folder on Google Photos
+- [ ] https://github.com/IonicaBizau/image-to-ascii
 - https://github.com/red-data-tools/YouPlot
 
 

@@ -111,20 +111,21 @@ export class OAuth2Client {
     };
   }
 
-  hasValidRefreshToken(): boolean {
-    return !!this.tokenStore.refresh_token &&
-      !!this.tokenStore.expiry_date &&
-      this.tokenStore.expiry_date > new Date().getTime()
+  hasRefreshToken(): boolean {
+    return !!this.tokenStore.refresh_token
   }
 
-  isTimeToRefresh(): boolean {
-    return this.hasValidRefreshToken() &&
-      this.tokenStore!.expiry_date! < (new Date().getTime() + REFRESH_THRESHOLD_MS)
+  isAccessTokenExpired(): boolean {
+    // If we don't have a token, it's time to refresh.
+    // Also, if the expiry date is passed, it's time to refresh.
+    return !this.tokenStore.access_token
+      || !this.tokenStore.expiry_date
+      || this.tokenStore!.expiry_date < (new Date().getTime() + REFRESH_THRESHOLD_MS)
   }
 
   refreshAccessToken(): Promise<TokenResponse> {
 
-    if (!this.hasValidRefreshToken())
+    if (!this.hasRefreshToken())
       throw "No valid refresh token"
 
     const refreshToken = this.tokenStore.refresh_token

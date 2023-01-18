@@ -13,16 +13,18 @@ export async function obtainBearerToken({
                                           verbose = false
                                         }: Options) {
   // Refresh if necessary (the "auth-refresh")
-  if (client.hasValidRefreshToken()
-    && client.isTimeToRefresh())
+  if (client.hasRefreshToken()
+    && client.isAccessTokenExpired()) {
+    console.log('  Refreshing access token.')
     await client.refreshAccessToken()
+  }
 
   // ... or auth if necessary
   // TODO more scopes
-  if (!client.bearerToken)
+  if (client.isAccessTokenExpired())
     await choreographTerminalLogin(client, {scope})
   else if (verbose)
-    console.log('Already logged in.')
+    console.log('  Using existing login.')
 
   return client.bearerToken
 }
