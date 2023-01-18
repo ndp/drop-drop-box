@@ -1,10 +1,8 @@
-#!/usr/bin/env node
-// Object.defineProperty(exports, "__esModule", { value: true })
-
 import * as dotenv from 'dotenv'
 import Chalk from 'chalk'
 import figlet from 'figlet'
 import {Command} from 'commander'
+import {default as imageToAscii} from 'image-to-ascii'
 import {Database} from 'sqlite-async'
 import {createTables, stats} from './db'
 import {createAlbum, createMediaItem, oauthGoogle, uploadMedia} from './google-photos_api'
@@ -17,7 +15,7 @@ import {
 } from "./db/search_paths";
 import {lpad} from "./util";
 import {
-  getStream,
+  downloadFile,
   listFolderResult,
   markTransferredOnDropbox,
   oauthDropbox,
@@ -32,6 +30,32 @@ import {
 import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {getLastAlbumId, saveAlbum} from "./db/google_albums";
+import * as fs from "fs";
+import * as readline from "readline";
+
+async function getLogUpdate() {
+  const logUpdate = await import ('log-update')
+  return logUpdate.default
+}
+
+function logImageAsAscii(path: string) {
+  imageToAscii(path, {
+    size: {height: 28},
+    bg: false,
+    fg: true,
+  }, async (err: unknown, image: string) => {
+    const logUpdate = await getLogUpdate()
+    logUpdate(image)
+    // imageToAscii('/Users/ndp/Downloads/T-shirt_.png', {}, (err: unknown, image: string) => {
+    //   logUpdate(image)
+    // })
+  })
+}
+
+//
+// logImageAsAscii('/Users/ndp/workspace/drop-drop-box/andy-hs-bone.png')
+// logImageAsAscii('/Users/ndp/Downloads/T-shirt_.png')
+// setTimeout(() => process.exit(0), 4000)
 
 dotenv.config()
 
@@ -113,10 +137,13 @@ const createAlbumCmd = new Command('album')
     await saveAlbum(db, albumId, name)
   })
 
+
 const transferCmd = new Command('transfer')
   .description('transfer queued files from Dropbox to Google Photos')
   .argument('[n]', 'number files to move')
   .action(async (max) => {
+
+    const tempDir = fs.mkdtempSync('drop-drop-box')
 
     if (!max) max = 1
 
@@ -125,15 +152,27 @@ const transferCmd = new Command('transfer')
     await loginDropbox(db);
     await loginGoogle(db);
 
+    const logUpdate = await getLogUpdate()
+
+    logUpdate.clear()
+
     const albumId = await getLastAlbumId(db)
 
     async function transfer(dbId: number) {
       console.log(`Transferring item id ${dbId}:`)
       const item = await readOneDropboxItemByDbId(db, dbId)
+      console.log({downloadFile})
       try {
-        const downloadStream = await getStream(item.path_lower)
+        const downloadInfo: any = await downloadFile(item.path_lower);
+        downloadInfo.buffer = downloadInfo.stream as Buffer
 
-        const uploadToken = await uploadMedia(downloadStream)
+        console.log(downloadInfo)
+        // Let's log the image here
+        const fileName = `${tempDir}-${dbId}`;
+        fs.writeFileSync(fileName, downloadInfo.buffer)
+        logImageAsAscii(fileName)
+
+        const uploadToken = await uploadMedia(downloadInfo)
         // console.log({uploadToken: JSON.stringify(uploadToken)})
 
         const googleResponse = await createMediaItem({
@@ -265,22 +304,3 @@ export async function getDatabase() {
 }
 
 
-// .cursor
-// .has_more
-/*
-
- {
-      '.tag': 'file',
-      name: '1Password Emergency Kit A3-86K84C-my.pdf',
-      path_lower: '/1password emergency kit a3-86k84c-my.pdf',
-      path_display: '/1Password Emergency Kit A3-86K84C-my.pdf',
-      id: 'id:1BR6ng55q5oAAAAAAASt3A',
-      client_modified: '2021-09-24T16:20:30Z',
-      server_modified: '2021-09-24T16:20:33Z',
-      rev: '5ccc020765fe9006095a9',
-      size: 77322,
-      is_downloadable: true,
-      content_hash: '30c6a1bf25e7f94e3a07e37631c601d81241f49b9e4af85cc03a4300710dbeb7'
-    }
-
- */
