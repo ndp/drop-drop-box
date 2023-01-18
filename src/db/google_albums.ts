@@ -1,4 +1,4 @@
-import {Database} from "../../../sqlite-async";
+import {Database} from "sqlite-async";
 
 
 interface Count {

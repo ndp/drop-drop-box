@@ -1,4 +1,4 @@
-import {Database} from "../../sqlite-async";
+import {Database} from "sqlite-async";
 
 export const lpad = (s: string, len: number): string => s.length < len ? lpad(' ' + s, len) : s;
 
