@@ -20,6 +20,7 @@
     "@types/chalk": "*",
     "@types/expect": "*",
     "@types/figlet": "*",
+    "@types/image-to-ascii": "./src/typings/",
     "@types/mocha": "*",
     "@types/node": "*",
     "@types/node-fetch": "*",
@@ -39,6 +40,8 @@
     "dotenv": "*",
     "dropbox": "*",
     "figlet": "*",
+    "image-to-ascii": "^3.0.13",
+    "log-update": "^5.0.1",
     "sqlite-async": "ndp/sqlite-async#13-typescript"
   }
 }

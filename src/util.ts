@@ -28,3 +28,15 @@ export async function tableHasColumn(db: Database, table: string, column: string
   WHERE name='${column}'`))['COUNT(*)'];
 }
 
+export type MimeType = 'image/jpeg' | 'image/png' | 'image/gif'
+
+export function pathToMimeType(path: string): MimeType {
+  if (path.match(/jpe?g$/i))
+    return 'image/jpeg'
+  if (path.match(/gif$/i))
+    return 'image/gif'
+  if (path.match(/png$/i))
+    return 'image/png'
+  throw `Unknown mime type for file ${path}`
+}
+
