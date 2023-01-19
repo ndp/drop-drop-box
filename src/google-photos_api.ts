@@ -6,6 +6,7 @@ import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore"
 import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 import ReadableStream = NodeJS.ReadableStream;
 import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
+import { MimeType } from './util';
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -51,18 +52,17 @@ export async function listMediaItems() {
     .then(response => response.json())
 }
 
-export type MimeType = 'image/jpeg' | 'image/png' | 'image/gif'
 type UploadToken = string
 
 export async function uploadMedia(
   {
-    stream,
+    buffer,
     mimeType
-  }: { stream: ReadableStream, mimeType: MimeType }
+  }: { buffer: Buffer, mimeType: MimeType }
 ): Promise<UploadToken> {
   return authyFetch('https://photoslibrary.googleapis.com/v1/uploads', {
     method: 'POST',
-    body: stream,
+    body: buffer,
     headers: {
       'Content-type': 'application/octet-stream',
       'X-Goog-Upload-Content-Type': mimeType,

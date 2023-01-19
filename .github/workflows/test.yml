@@ -8,11 +8,12 @@ jobs:
   unit-tests:
     strategy:
       matrix:
-        os: ["ubuntu-latest", "windows-latest"]
+        os: ["ubuntu-latest"]
         node_version: [lts/-1, lts/*, latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
+      - run: sudo apt-get install graphicsmagick
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
