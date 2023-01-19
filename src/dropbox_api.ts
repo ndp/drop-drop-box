@@ -75,11 +75,11 @@ export function selectFilesFromResult(result: files.ListFolderResult): Array<Dro
 }
 
 export async function downloadFile(path: string):
-  Promise<{ stream: NodeJS.ReadableStream, mimeType: MimeType }> {
+  Promise<{ buffer: Buffer, mimeType: MimeType }> {
 
   const {result} = await dropboxApi.filesDownload({path})
-  const stream = (result as unknown as { fileBinary: NodeJS.ReadableStream }).fileBinary
-  return {stream, mimeType: pathToMimeType(path)}
+  const buffer = (result as unknown as { fileBinary: Buffer }).fileBinary
+  return {buffer, mimeType: pathToMimeType(path)}
 }
 
 /*

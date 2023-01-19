@@ -22,6 +22,7 @@ import {
   selectFilesFromResult
 } from "./dropbox_api";
 import {
+  DropboxItemRecord,
   findTransferrable,
   insertDropboxItem,
   readOneDropboxItemByDbId,
@@ -31,25 +32,37 @@ import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {getLastAlbumId, saveAlbum} from "./db/google_albums";
 import * as fs from "fs";
-import * as readline from "readline";
 
 async function getLogUpdate() {
   const logUpdate = await import ('log-update')
   return logUpdate.default
 }
 
-function logImageAsAscii(path: string) {
-  imageToAscii(path, {
-    size: {height: 28},
+async function logTransferStatus(status: string,
+                                 item: DropboxItemRecord,
+                                 localImagePath?: string) {
+
+  const logUpdate = await getLogUpdate()
+
+  if (!localImagePath) {
+    logUpdate(lineOne())
+    return
+  }
+
+  imageToAscii(localImagePath, {
+    size: {height: 40},
     bg: false,
     fg: true,
+    colored: status === 'SUCCESS'
   }, async (err: unknown, image: string) => {
-    const logUpdate = await getLogUpdate()
-    logUpdate(image)
-    // imageToAscii('/Users/ndp/Downloads/T-shirt_.png', {}, (err: unknown, image: string) => {
-    //   logUpdate(image)
-    // })
+    logUpdate(lineOne() + '\n' + image)
   })
+
+  function lineOne() {
+    return `${lpad(status, 15)} ${item.path_lower}`;
+  }
+
+
 }
 
 //
@@ -143,7 +156,7 @@ const transferCmd = new Command('transfer')
   .argument('[n]', 'number files to move')
   .action(async (max) => {
 
-    const tempDir = fs.mkdtempSync('drop-drop-box')
+    const tempDir = fs.mkdtempSync('/private/tmp/drop-drop-box')
 
     if (!max) max = 1
 
@@ -154,39 +167,38 @@ const transferCmd = new Command('transfer')
 
     const logUpdate = await getLogUpdate()
 
+    console.log('')
     logUpdate.clear()
 
     const albumId = await getLastAlbumId(db)
 
     async function transfer(dbId: number) {
-      console.log(`Transferring item id ${dbId}:`)
+
       const item = await readOneDropboxItemByDbId(db, dbId)
-      console.log({downloadFile})
+
+      await logTransferStatus('FETCHING', item)
+
       try {
-        const downloadInfo: any = await downloadFile(item.path_lower);
-        downloadInfo.buffer = downloadInfo.stream as Buffer
+        const downloadInfo = await downloadFile(item.path_lower);
 
-        console.log(downloadInfo)
-        // Let's log the image here
-        const fileName = `${tempDir}-${dbId}`;
+        const fileName = `${tempDir}/download-${dbId}`;
         fs.writeFileSync(fileName, downloadInfo.buffer)
-        logImageAsAscii(fileName)
 
+        await logTransferStatus('UPLOADING', item, fileName)
         const uploadToken = await uploadMedia(downloadInfo)
-        // console.log({uploadToken: JSON.stringify(uploadToken)})
 
-        const googleResponse = await createMediaItem({
+        await logTransferStatus('LINKING', item, fileName)
+
+        await createMediaItem({
           albumId,
           description: '',
           fileName: item.path_lower,
           uploadToken: uploadToken
         })
+        await markTransferredOnDropbox(item.path_lower)
+        await updateDropboxItemStatus(db, dbId, 'TRANSFERRED')
 
-        const dropboxResult = await markTransferredOnDropbox(item.path_lower)
-        const dbResponse = await updateDropboxItemStatus(db, dbId, 'TRANSFERRED')
-
-        console.log('   ... success')
-        // console.log('---> ', {googleResponse, dropboxResult, dbResponse})
+        await logTransferStatus('SUCCESS', item, fileName)
 
       } catch (e: any) {
         if (e.status === 409) {
