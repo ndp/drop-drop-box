@@ -27,7 +27,6 @@ CLI for transferring images from Dropbox to Google Photos
 
 Options:
   -db, --database <db>         SQLLite3 database path (default: "./dropbox-db.sqlite3")
-  -V, --verbose                Lotsa logging (default: false)
   -h, --help                   display help for command
 
 Commands:

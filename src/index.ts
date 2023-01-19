@@ -294,7 +294,7 @@ const command = new Command('drop-drop-box')
 command
   .description("CLI for transferring images from Dropbox to Google Photos")
   .option('-db, --database <db>', 'SQLLite3 database path', './dropbox-db.sqlite3')
-  .option('-V, --verbose', 'Lotsa logging', false)
+  // .option('-V, --verbose', 'Lotsa logging', false)
   .addCommand(statsCmd)
   .addCommand(folders)
 
