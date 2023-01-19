@@ -5,9 +5,9 @@ import {ProviderKey} from "../ProviderUrlsSupported";
 
 export class SqliteTokenStore implements TokenStore {
 
-  private _access_token: string = ''
-  private _refresh_token: string = ''
-  private _expiry_date: number = 0
+  private _access_token = ''
+  private _refresh_token = ''
+  private _expiry_date = 0
 
   static async setup({db, provider}:
                        { db: Database, provider: ProviderKey }) {
@@ -23,7 +23,7 @@ export class SqliteTokenStore implements TokenStore {
   async save(tokens: Storable) {
     this._access_token = tokens.access_token
     this._refresh_token = tokens.refresh_token
-    this._expiry_date = tokens.expiry_date!
+    this._expiry_date = tokens.expiry_date ?? 0
 
     await this.db.run('DELETE FROM oauth_tokens WHERE provider=?', this.provider)
     await this.db.run('INSERT INTO oauth_tokens ' +

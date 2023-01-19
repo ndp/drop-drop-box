@@ -74,7 +74,7 @@ export async function readOnePendingSearchPath(db: Database) {
   return searchPath
 }
 
-export async function readSeachPaths(db: Database) {
+export async function readSearchPaths(db: Database) {
   return await db.all<SearchPath>('SELECT * FROM search_paths ORDER BY status, path')
 }
 
