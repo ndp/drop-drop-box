@@ -6,7 +6,7 @@ export interface TokenRecord {
 }
 
 export interface TokenResponse {
-  res: any;
+  res: unknown;
   tokens: TokenRecord;
 }
 

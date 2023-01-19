@@ -93,7 +93,7 @@ type MediaCreationResponse = {
         "width": string,
         "height": string,
         "creationTime": string,
-        "photo": {}
+        "photo": unknown
       },
       "filename": string
     }

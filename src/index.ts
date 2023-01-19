@@ -11,7 +11,7 @@ import {createAlbum, createMediaItem, oauthGoogle, uploadMedia} from './google-p
 import {
   insertSearchPath,
   readOnePendingSearchPath,
-  readSeachPaths,
+  readSearchPaths,
   updateSearchPathCursor,
   updateSearchPathStatus
 } from "./db/search_paths";
@@ -178,7 +178,7 @@ export const folders = new Command('folders')
   .description('show Dropbox folders')
   .action(async () => {
     const db = await getDatabase()
-    const searchPaths = await readSeachPaths(db)
+    const searchPaths = await readSearchPaths(db)
     for (const p of searchPaths)
       console.log(`${lpad(p.status, 15)}   ${p.path}`)
   })
@@ -226,8 +226,7 @@ export const discoverCmd = new Command('discover')
           } else {
             await updateSearchPathStatus(db, searchPathId, 'DONE')
           }
-          for (let f of files) await insertDropboxItem(db, f, searchPathId)
-          // console.log(files.map(f => f.name));
+          for (const f of files) await insertDropboxItem(db, f, searchPathId)
         })
       } catch (e) {
         if ((e as { status: number }).status === 409 &&

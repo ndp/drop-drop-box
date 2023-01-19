@@ -2,7 +2,7 @@ import {Database} from "sqlite-async";
 import {
   createTableSearchPaths,
   insertSearchPath,
-  readOnePendingSearchPath, readOneSearchPath, readSeachPaths, readSearchPathStats,
+  readOnePendingSearchPath, readOneSearchPath, readSearchPaths, readSearchPathStats,
   updateSearchPathCursor, updateSearchPathStatus
 } from './search_paths'
 import {expect} from "chai";
@@ -14,7 +14,7 @@ describe('search_paths', () => {
 
   beforeEach(async () => {
     db = await Database.open('', Database.OPEN_READWRITE) // in memory
-    createTableSearchPaths(db)
+    await createTableSearchPaths(db)
   })
 
 
@@ -73,14 +73,14 @@ describe('search_paths', () => {
     expect(red.cursor).to.equal(null)
   })
 
-  specify('readSeachPaths', async () => {
-    let p = await readSeachPaths(db)
+  specify('readSearchPaths', async () => {
+    let p = await readSearchPaths(db)
     expect(p).to.deep.equal([])
 
-    const a = await insertSearchPath(db, '/foo/bar/a')
-    const b = await insertSearchPath(db, '/foo/bar/b')
-    const c = await insertSearchPath(db, '/foo/bar/c')
-    p = await readSeachPaths(db)
+    await insertSearchPath(db, '/foo/bar/a')
+    await insertSearchPath(db, '/foo/bar/b')
+    await insertSearchPath(db, '/foo/bar/c')
+    p = await readSearchPaths(db)
     expect(p.length).to.equal(3)
   })
 

@@ -33,11 +33,14 @@
     "typescript": "*"
   },
   "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.48.2",
+    "@typescript-eslint/parser": "^5.48.2",
     "chalk": "~4",
     "clear": "*",
     "commander": "*",
     "dotenv": "*",
     "dropbox": "*",
+    "eslint": "^8.32.0",
     "figlet": "*",
     "sqlite-async": "ndp/sqlite-async#13-typescript"
   }

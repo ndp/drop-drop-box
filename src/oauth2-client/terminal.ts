@@ -28,10 +28,10 @@ export function makeMiniNodeServerToReceiveCode(
       server.close()
 
       const code = url.searchParams.get('code')
-      if (!code) reject('Did not receive a code in the callback: ' + req.url)
-
-      const token = await client.exchangeAuthCodeForToken(code!)
-      resolve(token)
+      if (!code)
+        reject('Did not receive a code in the callback: ' + req.url)
+      else
+        resolve(await client.exchangeAuthCodeForToken(code))
     }
   });
 }
