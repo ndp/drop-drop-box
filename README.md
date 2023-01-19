@@ -23,41 +23,38 @@ $ ts-node src/index.ts  help
                         |_|                                    |_|                                   
 Usage: drop-drop-box [options] [command]
 
-Usage: drop-drop-box [options] [command]
-
-CLI for transferring files from Dropbox to Google Photos
+CLI for transferring images from Dropbox to Google Photos
 
 Options:
-  -db, --database <db>     SQLLite3 database path (default: "./dropbox-db.sqlite3")
-  -V, --verbose            Lotsa logging (default: false)
-  -h, --help               display help for command
+  -db, --database <db>         SQLLite3 database path (default: "./dropbox-db.sqlite3")
+  -h, --help                   display help for command
 
 Commands:
-  stats                    show current DB stats
-  folders                  show Dropbox folders
-  login [google|dropbox]   Log in
-  logout [google|dropbox]  Reset the persisted auth and log in again
-  add <paths...>           add DropBox path to search for images
-  discover [n]             discover new Dropbox files in added folders
-  album <name>             create new album on Google photos
-  transfer [n]             transfer queued files from Dropbox to Google Photos
-  help [command]           display help for command
+  stats                        Show current DB stats and queue lengths
+  folders                      Show Dropbox folders queued for migration
+  login [google|dropbox|all]   Log in
+  logout [google|dropbox|all]  Reset the persisted auth
+  add <paths...>               Enqueue DropBox path to search for images (recursively)
+  discover [n]                 Discover new Dropbox files in queued folders
+  album <name>                 Create new album on Google photos and migrate all future images to this album
+  transfer [n]                 Transfer queued Dropbox items to Google Photos
+  help [command]               display help for command
 ```
 
 ## TODOs
 
 - [x] Dropbox oauth
 - [x] Dropbox oauth refresh token
-- [ ] add scope to store / incremental authorization
+- [ ] OAUTH add scope to store / incremental authorization
 - [ ] Filter out images that can be processed
 - [ ] Keep a list of non-images... what to do?
-- [ ] report album name
+- [x] report album name
 - [ ] ability to set and see dropbox archive folder-- or NO folder for no movement
 - [x] Mark as copied on Dropbox, or remove
 - [x] import into folder on Google Photos
 - [ ] http://www.graphicsmagick.org/identify.html
-- [ ] https://github.com/IonicaBizau/image-to-ascii
-- https://github.com/red-data-tools/YouPlot
+- [x] https://github.com/IonicaBizau/image-to-ascii
+- [ ] https://github.com/red-data-tools/YouPlot
 
 
 ## Questions

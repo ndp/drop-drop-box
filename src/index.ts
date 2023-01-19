@@ -98,7 +98,7 @@ async function loginGoogle(db: Database) {
 }
 
 export const loginCmd = new Command('login')
-  .argument('[google|dropbox]', 'provide to authenticate', 'all')
+  .argument('[google|dropbox|all]', 'provide to authenticate', 'all')
   .description('Log in')
   .action(async (provider: string) => {
     const db = await getDatabase()
@@ -112,8 +112,8 @@ export const loginCmd = new Command('login')
   })
 
 export const logoutCmd = new Command('logout')
-  .argument('[google|dropbox]', 'provide to authenticate', 'all')
-  .description('Reset the persisted auth and log in again')
+  .argument('[google|dropbox|all]', 'provider to authenticate', 'all')
+  .description('Reset the persisted auth')
   .action(async (provider: string) => {
     const db = await getDatabase()
 
@@ -132,14 +132,14 @@ export const logoutCmd = new Command('logout')
 
 
 export const statsCmd = new Command('stats')
-  .description('show current DB stats')
+  .description('Show current DB stats and queue lengths')
   .action(async () => {
     const db = await getDatabase()
     console.log('*** Stats ***', await stats(db))
   })
 
 const createAlbumCmd = new Command('album')
-  .description('create new album on Google photos')
+  .description('Create new album on Google photos and migrate all future images to this album')
   .argument('name', 'name of album')
   .action(async (name: string) => {
     const db = await getDatabase()
@@ -152,7 +152,7 @@ const createAlbumCmd = new Command('album')
 
 
 const transferCmd = new Command('transfer')
-  .description('transfer queued files from Dropbox to Google Photos')
+  .description('Transfer queued Dropbox items to Google Photos')
   .argument('[n]', 'number files to move')
   .action(async (max) => {
 
@@ -216,7 +216,7 @@ const transferCmd = new Command('transfer')
 
 
 export const add = new Command('add')
-  .description('add DropBox path to search for images')
+  .description('Enqueue DropBox path to search for images (recursively)')
   .argument('paths...')
   .action(async (paths) => {
     const db = await getDatabase()
@@ -226,7 +226,7 @@ export const add = new Command('add')
 //    await insertSearchPath(db, '/Tanyandy/Photos/2011/Originals/2011/Mar 29, 2011')
   })
 export const folders = new Command('folders')
-  .description('show Dropbox folders')
+  .description('Show Dropbox folders queued for migration')
   .action(async () => {
     const db = await getDatabase()
     const searchPaths = await readSearchPaths(db)
@@ -235,7 +235,7 @@ export const folders = new Command('folders')
   })
 export const discoverCmd = new Command('discover')
   .argument('[n]', 'number of Dropbox folders to scan (default 1)')
-  .description('discover new Dropbox files in added folders')
+  .description('Discover new Dropbox files in queued folders')
   .action(async (n) => {
 
     if (!n) n = 1
@@ -292,9 +292,9 @@ export const discoverCmd = new Command('discover')
 
 const command = new Command('drop-drop-box')
 command
-  .description("CLI for transferring files from Dropbox to Google Photos")
+  .description("CLI for transferring images from Dropbox to Google Photos")
   .option('-db, --database <db>', 'SQLLite3 database path', './dropbox-db.sqlite3')
-  .option('-V, --verbose', 'Lotsa logging', false)
+  // .option('-V, --verbose', 'Lotsa logging', false)
   .addCommand(statsCmd)
   .addCommand(folders)
 
