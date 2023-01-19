@@ -49,7 +49,7 @@ Commands:
 - [ ] OAUTH add scope to store / incremental authorization
 - [ ] Filter out images that can be processed
 - [ ] Keep a list of non-images... what to do?
-- [ ] report album name
+- [x] report album name
 - [ ] ability to set and see dropbox archive folder-- or NO folder for no movement
 - [x] Mark as copied on Dropbox, or remove
 - [x] import into folder on Google Photos
