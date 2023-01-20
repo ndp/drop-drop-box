@@ -1,6 +1,6 @@
 import {Database} from 'sqlite-async'
 import {DropboxFileImport} from '../dropbox_api'
-import {tableHasColumn} from "../util";
+import {pathToMimeType, tableHasColumn} from "../util";
 
 interface Count {
   ['COUNT(*)']: number
@@ -56,9 +56,14 @@ export async function insertDropboxItem(db: Database, file: DropboxFileImport, s
     return Promise.resolve(existing.id)
 
   return db.run(`INSERT INTO dropbox_items (
-                        dropbox_id, path_lower, size, content_hash, search_path_id
-                        ) values ($1, $2, $3, $4, $5);`,
-    [file.id, file.path_lower, file.size, file.content_hash, searchPathId])
+                        dropbox_id, path_lower, size, content_hash, search_path_id, mime_type
+                        ) values ($1, $2, $3, $4, $5, $6);`,
+    [file.id,
+      file.path_lower,
+      file.size,
+      file.content_hash,
+      searchPathId,
+      pathToMimeType(file.path_lower!)])
     .then(result => result.lastID)
 }
 
@@ -78,15 +83,15 @@ export async function updateDropboxItemStatus(db: Database, dbId: number, newSta
 }
 
 
-export async function findTransferrable(db: Database, max = 1) {
-  const result = await db.all<{ ID: number }>(`
+export async function findTransferable(db: Database, max = 1) {
+  const result = await db.all(`
   SELECT id
   FROM dropbox_items
   WHERE status = "FOUND"
   AND mime_type LIKE "image/%"
   ORDER BY RANDOM()
   LIMIT ?`, [max])
-  return result.map(r => r.ID)
+  return result.map((r: any) => r.id)
 }
 
 export async function readOneDropboxItemByContentHash(db: Database, contentHash: string) {

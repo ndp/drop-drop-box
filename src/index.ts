@@ -23,7 +23,7 @@ import {
 } from "./dropbox_api";
 import {
   DropboxItemRecord,
-  findTransferrable,
+  findTransferable,
   insertDropboxItem,
   readOneDropboxItemByDbId,
   updateDropboxItemStatus
@@ -209,7 +209,7 @@ const transferCmd = new Command('transfer')
       }
     }
 
-    const toTransfer = await findTransferrable(db, max);
+    const toTransfer = await findTransferable(db, max);
 
     for (const id of toTransfer) await transfer(id);
   })
@@ -266,7 +266,6 @@ export const discoverCmd = new Command('discover')
                                          path,
                                          cursor
                                        }: { searchPathId: number, path: string, cursor: string }) {
-      console.log('--> enqueueDropboxFiles', {path, cursor, searchPathId})
       try {
         const result = await listFolderResult(path, cursor)
         const files = selectFilesFromResult(result)

@@ -70,7 +70,6 @@ export async function readOneSearchPath(db: Database, searchPathId: number) {
 
 export async function readOnePendingSearchPath(db: Database) {
   const searchPath = await db.get<SearchPath>('SELECT * FROM search_paths WHERE status != "DONE" AND status != "FAILED" ORDER BY cursor DESC, RANDOM()');
-  if (searchPath.ID) searchPath.id = searchPath.ID
   return searchPath
 }
 
