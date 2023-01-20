@@ -25,21 +25,17 @@ export async function createTableDropboxItems(db: Database) {
                            size integer,
                            content_hash varchar(255) UNIQUE,
                            status varchar(20) DEFAULT "FOUND",
-                           search_path_id INTEGER NOT NULL
+                           search_path_id INTEGER NOT NULL,
+                           mime_type VARCHAR(255) NOT NULL default 'application/octet-stream'
                            ); `);
 
-  // catch previous schema that add column (TODO remove)
-  const hasSearchPathIdColumn = (await db.get<Count>(`
-  SELECT COUNT(*)
-  FROM pragma_table_info('dropbox_items')
-  WHERE name='search_path_id'`))['COUNT(*)'];
-
-  if (!tableHasColumn(db, 'dropbox_items', 'search_path_id')) {
-    await db.exec(`
-    ALTER TABLE dropbox_items
-    ADD COLUMN search_path_id INTEGER NOT NULL DEFAULT '-1'
-    `)
-  }
+  // example migration:
+  // if (!tableHasColumn(db, 'dropbox_items', 'mime_type')) {
+  //   await db.exec(`
+  //   ALTER TABLE dropbox_items
+  //   ADD COLUMN mime_type VARCHAR(255) NOT NULL DEFAULT 'application/octet-stream'
+  //   `)
+  // }
 }
 
 export async function dropboxItemsStats(db: Database) {
@@ -87,6 +83,7 @@ export async function findTransferrable(db: Database, max = 1) {
   SELECT id
   FROM dropbox_items
   WHERE status = "FOUND"
+  AND mime_type LIKE "image/%"
   ORDER BY RANDOM()
   LIMIT ?`, [max])
   return result.map(r => r.ID)

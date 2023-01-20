@@ -46,7 +46,7 @@ Commands:
 - [x] Dropbox oauth
 - [x] Dropbox oauth refresh token
 - [ ] OAUTH add scope to store / incremental authorization
-- [ ] Filter out images that can be processed
+- [x] Filter out images that can be processed
 - [ ] Keep a list of non-images... what to do?
 - [x] report album name
 - [ ] ability to set and see dropbox archive folder-- or NO folder for no movement
