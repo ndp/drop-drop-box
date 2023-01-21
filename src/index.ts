@@ -40,7 +40,8 @@ async function getLogUpdate() {
 
 async function logTransferStatus(status: string,
                                  item: DropboxItemRecord,
-                                 localImagePath?: string) {
+                                 localImagePath?: string,
+                                 dimensions?: {width: number, height: number}) {
 
   const logUpdate = await getLogUpdate()
 
@@ -59,7 +60,8 @@ async function logTransferStatus(status: string,
   })
 
   function lineOne() {
-    return `${lpad(status, 15)} ${item.path_lower}`;
+    const dimStr = dimensions ? `  (${dimensions.width} x ${dimensions.height})` : ''
+    return `${lpad(status, 10)} ${item.path_lower}${dimStr}`;
   }
 
 
@@ -181,13 +183,18 @@ const transferCmd = new Command('transfer')
       try {
         const downloadInfo = await downloadFile(item.path_lower);
 
+        if (downloadInfo.dimensions.width < 361 && downloadInfo.dimensions.width < 361) {
+          await updateDropboxItemStatus(db, dbId, 'LOOKS_SMALL')
+          return
+        }
+
         const fileName = `${tempDir}/download-${dbId}`;
         fs.writeFileSync(fileName, downloadInfo.buffer)
 
-        await logTransferStatus('UPLOADING', item, fileName)
+        await logTransferStatus('UPLOADING', item, fileName, downloadInfo.dimensions)
         const uploadToken = await uploadMedia(downloadInfo)
 
-        await logTransferStatus('LINKING', item, fileName)
+        await logTransferStatus('LINKING', item, fileName, downloadInfo.dimensions)
 
         await createMediaItem({
           albumId,
@@ -198,7 +205,7 @@ const transferCmd = new Command('transfer')
         await markTransferredOnDropbox(item.path_lower)
         await updateDropboxItemStatus(db, dbId, 'TRANSFERRED')
 
-        await logTransferStatus('SUCCESS', item, fileName)
+        await logTransferStatus('SUCCESS', item, fileName, downloadInfo.dimensions)
 
       } catch (e: any) {
         if (e.status === 409) {

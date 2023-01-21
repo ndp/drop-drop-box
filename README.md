@@ -67,6 +67,3 @@ Commands:
 - I manually applied this [Template](https://itnext.io/how-to-create-your-own-typescript-cli-with-node-js-1faf7095ef89)
 - I copied some of the google oauth implementation from https://github.com/buttercup/google-oauth2-client. It was the first one I could get to work. I am taking it in a different direction, but that code got me started. Also of interest: https://dev.to/lauravuo/how-to-oauth-from-the-command-line-47j0 https://github.com/badgateway/oauth2-client
 
-
-
-

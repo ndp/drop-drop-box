@@ -15,7 +15,7 @@ export type DropboxItemRecord = {
   content_hash: string,
 }
 
-type Status = 'FOUND' | 'TRANSFERRED' | 'MISSING'
+type Status = 'FOUND' | 'TRANSFERRED' | 'MISSING' | 'LOOKS_SMALL'
 
 export async function createTableDropboxItems(db: Database) {
   await db.exec(`CREATE TABLE IF NOT EXISTS dropbox_items (
@@ -89,7 +89,7 @@ export async function findTransferable(db: Database, max = 1) {
   FROM dropbox_items
   WHERE status = "FOUND"
   AND mime_type LIKE "image/%"
-  ORDER BY RANDOM()
+  ORDER BY id
   LIMIT ?`, [max])
   return result.map((r: any) => r.id)
 }
