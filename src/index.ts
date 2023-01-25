@@ -41,7 +41,7 @@ async function getLogUpdate() {
 async function logTransferStatus(status: string,
                                  item: DropboxItemRecord,
                                  localImagePath?: string,
-                                 dimensions?: {width: number, height: number}) {
+                                 dimensions?: { width: number, height: number }) {
 
   const logUpdate = await getLogUpdate()
 
@@ -50,13 +50,16 @@ async function logTransferStatus(status: string,
     return
   }
 
-  imageToAscii(localImagePath, {
-    size: {height: 40},
-    bg: false,
-    fg: true,
-    colored: status === 'SUCCESS'
-  }, async (err: unknown, image: string) => {
-    logUpdate(lineOne() + '\n' + image)
+  return new Promise<void>((resolve, reject) => {
+    imageToAscii(localImagePath, {
+      size: {height: 40},
+      bg: false,
+      fg: true,
+      colored: status === 'LINKING' || status === 'SUCCESS'
+    }, async (err: unknown, image: string) => {
+      logUpdate(lineOne() + '\n' + image)
+      resolve()
+    })
   })
 
   function lineOne() {
@@ -185,6 +188,7 @@ const transferCmd = new Command('transfer')
 
         if (downloadInfo.dimensions.width < 361 && downloadInfo.dimensions.width < 361) {
           await updateDropboxItemStatus(db, dbId, 'LOOKS_SMALL')
+          await logTransferStatus('TOO SMALL', item)
           return
         }
 
