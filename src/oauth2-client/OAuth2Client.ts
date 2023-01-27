@@ -6,8 +6,8 @@ import {
   TokenRecord, TokenResponse
 } from "./types";
 import {TokenStore} from './TokenStore'
-import {buildQueryString} from "../util";
 import {ProviderUrls} from "./ProviderUrlsSupported";
+import {buildQueryString} from "../util/string";
 
 
 // How much time do we need left on the refresh token before

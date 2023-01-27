@@ -16,6 +16,7 @@
   "license": "MIT",
   "private": false,
   "devDependencies": {
+    "@sinonjs/fake-timers": "^10.0.2",
     "@types/chai": "*",
     "@types/chalk": "*",
     "@types/expect": "*",
@@ -25,6 +26,7 @@
     "@types/node": "*",
     "@types/node-fetch": "*",
     "@types/sinon": "*",
+    "@types/sinonjs__fake-timers": "^8.1.2",
     "@types/sqlite3": "*",
     "chai": "*",
     "mocha": "*",

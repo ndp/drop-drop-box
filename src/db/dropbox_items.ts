@@ -1,6 +1,7 @@
 import {Database} from 'sqlite-async'
 import {DropboxFileImport} from '../dropbox_api'
-import {pathToMimeType, tableHasColumn} from "../util";
+import {pathToMimeType} from "../util/mime-type";
+import {tableHasColumn} from "../util/sqlite";
 
 interface Count {
   ['COUNT(*)']: number

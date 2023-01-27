@@ -1,6 +1,14 @@
 import sinon from "sinon";
-import {expect} from "chai";
+import {expect, util} from "chai";
 import {makeRetryable} from "./makeRetryable";
+import * as FakeTimers from '@sinonjs/fake-timers'
+import assert from "node:assert";
+import {isPending} from "./node";
+
+
+
+
+
 
 function rejectNTimesThenResolve<T>(n: number, result: T) {
   return () => n-- > 0
@@ -18,6 +26,7 @@ function throwNTimesThenReturn<T>(n: number, result: T) {
 
 
 describe('makeRetryable', () => {
+
 
   const yawnOptions = {retryable: (e: any) => false}
   const alwaysThrow = function () {
@@ -208,7 +217,58 @@ describe('makeRetryable', () => {
     const wrapped = makeRetryable(throwNTimesThenReturn(1, 'a'), {...yawnOptions, retryable: retrySome})
 
     expect([wrapped(), wrapped(), wrapped(), wrapped(), wrapped()]).to.deep.equal(['a', 'a', 'a', 'a', 'a'])
+  })
+
+  specify('throws if delay is passed for synchronous function', () => {
+
+      const wrapped = makeRetryable(() => 'foo', {...yawnOptions, delay: 1000})
+
+      expect(() => {
+        wrapped()
+      }).to.throws('`delay` is not supported for synchronous functions')
+    }
+  )
+
+
+  specify('standard', () => {
+    const clock = sinon.useFakeTimers({
+      now: 1483228800000,
+      toFake: ["setTimeout", "nextTick"],
+    });
+
+    let called = false;
+
+    process.nextTick(function () {
+      called = true;
+    });
+
+    clock.runAll(); //forces nextTick calls to flush synchronously
+    assert(called); //true
 
   })
+
+
+  specify('waits specified delay before retrying', async () => {
+
+    const clock = sinon.useFakeTimers()
+    // FakeTimers.install()
+
+    const wrapped = makeRetryable(rejectNTimesThenResolve(1, 'zesh'), {
+      ...yawnOptions,
+      retryable: () => true,
+      delay: 150
+    })
+
+    const promise = wrapped()
+
+    await clock.tickAsync(100)
+    expect(isPending(promise)).to.equal(true)
+
+    await clock.tickAsync(100)
+    expect(isPending(promise)).to.equal(false)
+
+    expect(await promise).to.equal('zesh')
+  })
+
 
 })

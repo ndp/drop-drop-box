@@ -1,13 +1,12 @@
 import {Dropbox, files} from 'dropbox'
-import {MimeType} from "./util";
 import FileMetadataReference = files.FileMetadataReference;
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {OAuth2Client} from "./oauth2-client";
 import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
 import { Buffer } from 'node:buffer';
-import {pathToMimeType} from "./util";
 import MediaInfoMetadata = files.MediaInfoMetadata;
+import {MimeType, pathToMimeType} from "./util/mime-type";
 
 export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 

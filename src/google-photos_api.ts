@@ -6,7 +6,7 @@ import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore"
 import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 import ReadableStream = NodeJS.ReadableStream;
 import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
-import { MimeType } from './util';
+import {MimeType} from "./util/mime-type";
 
 
 // was https://accounts.google.com/o/oauth2/auth

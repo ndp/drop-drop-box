@@ -13,7 +13,6 @@ import {
   updateSearchPathCursor,
   updateSearchPathStatus
 } from "./db/search_paths";
-import {lpad} from "./util";
 import {
   downloadFile,
   listFolderResult,
@@ -32,6 +31,7 @@ import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {getLastAlbumId, saveAlbum} from "./db/google_albums";
 import * as fs from "fs";
+import {lpad} from "./util/string";
 
 async function getLogUpdate() {
   const logUpdate = await import ('log-update')
