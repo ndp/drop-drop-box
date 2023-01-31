@@ -1,8 +1,14 @@
 import {isPromise, sleep} from "./promise";
 
+/*
+Retries are evaluated basec on which retry it is (starting at 1),
+and, if you want, the exception that was thrown.
+ */
+type MakeRetryableParams = [count: number, exceptionThrown: any]
+
 interface MakeRetryableOptions {
-  retryable: (count: number, exception: any) => boolean,
-  delay?: number | ((count: number, exception: any) => number)
+  retryable: (...args: MakeRetryableParams) => boolean,
+  delay?: number | ((...args: MakeRetryableParams) => number)
 }
 
 /**
