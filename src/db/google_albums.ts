@@ -23,8 +23,7 @@ export async function createTableGoogleAlbums(db: Database) {
 export async function albumStats(db: Database) {
   return {
     name: await getLastAlbumName(db),
-    count: (await db.get<Count>('SELECT COUNT(*) FROM google_albums;'))
-      ['COUNT(*)']
+    count: (await db.get<Count>('SELECT COUNT(*) FROM google_albums;'))['COUNT(*)']
   }
 }
 
