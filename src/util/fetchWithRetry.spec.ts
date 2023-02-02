@@ -1,10 +1,7 @@
 import sinon from "sinon";
-import {expect, util} from "chai";
-import * as FakeTimers from '@sinonjs/fake-timers'
 import assert from "node:assert";
 import fetch from 'node-fetch'
 import {makeFetchWithRetry} from "./fetchWithRetry";
-import {fail} from "assert";
 
 
 describe('makeFetchWithRetry', () => {
@@ -23,7 +20,7 @@ describe('makeFetchWithRetry', () => {
     const response = await fetchWithRetry('/foo')
     const json = await response.json()
 
-    expect(json).to.equal('made it')
+    assert.equal('made it', json)
   })
 
   specify('fetch returns non-retryable status code', async () => {
@@ -40,7 +37,7 @@ describe('makeFetchWithRetry', () => {
     })
 
     const response = await fetchWithRetry('/foo')
-    expect(response.status).to.equal(404)
+    assert.equal(404, response.status)
   })
 
   specify('one retry', async () => {
@@ -61,7 +58,7 @@ describe('makeFetchWithRetry', () => {
 
     const response = await fetchWithRetry('/foo')
     const json = await response.json()
-    expect(json).to.equal('made it')
+    assert.equal('made it', json)
   })
 
   specify('exhausts retries',  (done) => {
@@ -87,9 +84,9 @@ describe('makeFetchWithRetry', () => {
 
     const response = fetchWithRetry('/foo')
     response.then((response) => {
-      fail('should have failed after exhausting time-outs')
+      assert.fail('should have failed after exhausting time-outs')
     }, (e) => {
-      expect(e.response.status).to.equal(409)
+      assert.equal(409, e.response.status)
       done()
     })
   })
