@@ -1,19 +1,21 @@
 /*
 Typescript version of a fetch with retry.
 
-https://github.com/jonbern/fetch-retry
+Here is a good version of this: https://github.com/jonbern/fetch-retry
+
+Interesting simple retry examples:
+https://www.chrisarmstrong.dev/posts/retry-timeout-and-cancel-with-fetch
  */
 
 import {RequestInfo, RequestInit, Response} from "node-fetch";
 import {makeRetryable} from "./makeRetryable";
 
-
+// "standard" fetch
 declare function fetch(
   url: RequestInfo,
   init?: RequestInit
 ): Promise<Response>;
 
-type FetchFn = typeof fetch
 
 /**
  * retries:              Maximum number of retries to use
@@ -34,7 +36,7 @@ class RetryableError extends Error {
   }
 }
 
-export function makeFetchWithRetry(clientFetch: FetchFn, opts: Options): FetchFn {
+export function makeFetchWithRetry<F extends typeof fetch>(clientFetch: typeof fetch, opts: Options): typeof fetch {
 
   return makeRetryable((url: RequestInfo, init?: RequestInit) => {
 
@@ -66,4 +68,3 @@ export function makeFetchWithRetry(clientFetch: FetchFn, opts: Options): FetchFn
   }
 
 }
-
