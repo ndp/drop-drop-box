@@ -5,7 +5,7 @@ import {
   readOnePendingSearchPath, readOneSearchPath, readSearchPaths, readSearchPathStats,
   updateSearchPathCursor, updateSearchPathStatus
 } from './search_paths'
-import {expect} from "chai";
+import assert from "node:assert";
 
 
 describe('search_paths', () => {
@@ -22,35 +22,35 @@ describe('search_paths', () => {
     const id = await insertSearchPath(db, '/foo/bar') as number
 
     let red = await readOneSearchPath(db, id)
-    expect(red.cursor).to.equal(null)
+    assert.equal(null, red.cursor)
 
     await updateSearchPathCursor(db, id, 'new-cursor')
 
     red = await readOneSearchPath(db, id)
 
-    expect(red.cursor).to.equal('new-cursor')
+    assert.equal('new-cursor', red.cursor)
   })
 
   specify('updateSearchPathStatus', async () => {
     const id = await insertSearchPath(db, '/foo/bar') as number
 
     let red = await readOneSearchPath(db, id)
-    expect(red.cursor).to.equal(null)
+    assert.equal(null, red.cursor)
 
     await updateSearchPathStatus(db, id, 'DOWNLOADING')
 
     red = await readOneSearchPath(db, id)
-    expect(red.status).to.equal('DOWNLOADING')
+    assert.equal('DOWNLOADING', red.status)
 
     await updateSearchPathStatus(db, id, 'FAILED')
 
     red = await readOneSearchPath(db, id)
-    expect(red.status).to.equal('FAILED')
+    assert.equal('FAILED', red.status)
 
     await updateSearchPathStatus(db, id, 'DONE')
 
     red = await readOneSearchPath(db, id)
-    expect(red.status).to.equal('DONE')
+    assert.equal('DONE', red.status)
   })
 
 
@@ -59,29 +59,29 @@ describe('search_paths', () => {
     await insertSearchPath(db, '/foo/bar')
 
     let red = await readOnePendingSearchPath(db);
-    expect(red.path).to.equal('/foo/bar')
-    expect(red.status).to.equal('ENQUEUED')
-    expect(red.cursor).to.equal(null)
+    assert.equal('/foo/bar', red.path)
+    assert.equal('ENQUEUED', red.status)
+    assert.equal(null, red.cursor)
 
     await insertSearchPath(db, '/foo/baz')
 
     while (red.path !== '/foo/baz')
       red = await readOnePendingSearchPath(db)
 
-    expect(red.path).to.equal('/foo/baz')
-    expect(red.status).to.equal('ENQUEUED')
-    expect(red.cursor).to.equal(null)
+    assert.equal('/foo/baz', red.path)
+    assert.equal('ENQUEUED', red.status)
+    assert.equal(null, red.cursor)
   })
 
   specify('readSearchPaths', async () => {
     let p = await readSearchPaths(db)
-    expect(p).to.deep.equal([])
+    assert.deepEqual(([]), p)
 
     await insertSearchPath(db, '/foo/bar/a')
     await insertSearchPath(db, '/foo/bar/b')
     await insertSearchPath(db, '/foo/bar/c')
     p = await readSearchPaths(db)
-    expect(p.length).to.equal(3)
+    assert.equal(3, p.length)
   })
 
   specify('readSearchPathStats', async () => {
@@ -90,10 +90,10 @@ describe('search_paths', () => {
     const c = await insertSearchPath(db, '/foo/bar/c')
 
     let stats = await readSearchPathStats(db)
-    expect(stats['Total Search Paths']).to.equal(3)
-    expect(stats['Search Paths - Enqueued']).to.equal(3)
-    expect(stats['Search Paths - Downloading']).to.equal(0)
-    expect(stats['Search Paths - Done']).to.equal(0)
+    assert.equal(3, stats['Total Search Paths'])
+    assert.equal(3, stats['Search Paths - Enqueued'])
+    assert.equal(0, stats['Search Paths - Downloading'])
+    assert.equal(0, stats['Search Paths - Done'])
 
 
     await updateSearchPathStatus(db, a!, 'DOWNLOADING')
@@ -101,9 +101,9 @@ describe('search_paths', () => {
     await updateSearchPathStatus(db, c!, 'DONE')
 
     stats = await readSearchPathStats(db)
-    expect(stats['Total Search Paths']).to.equal(3)
-    expect(stats['Search Paths - Enqueued']).to.equal(0)
-    expect(stats['Search Paths - Downloading']).to.equal(2)
-    expect(stats['Search Paths - Done']).to.equal(1)
+    assert.equal(3, stats['Total Search Paths'])
+    assert.equal(0, stats['Search Paths - Enqueued'])
+    assert.equal(2, stats['Search Paths - Downloading'])
+    assert.equal(1, stats['Search Paths - Done'])
   })
 })

@@ -1,8 +1,8 @@
 import {OAuth2Client} from "./OAuth2Client";
-import {expect} from 'chai'
 import sinon from 'sinon'
 import {TokenResponse} from './types'
 import {InMemoryTokenStore} from "./TokenStore/InMemoryTokenStore";
+import assert from "node:assert";
 
 const AUTH_BASE_URL = 'https://foo.bar'
 
@@ -37,32 +37,32 @@ describe("OAuth2Client", function () {
   describe("generateAuthUrl", function () {
     it("returns a URL with the correct prefix", function () {
       const url = this.client.generateAuthUrl(this.authURLConfig);
-      expect(url).to.contain(AUTH_BASE_URL);
+      assert.match(url, new RegExp(AUTH_BASE_URL));
     });
 
     it("includes the access type", function () {
       const url = this.client.generateAuthUrl(this.authURLConfig);
-      expect(url).to.contain("access_type=offline");
+      assert.match(url, new RegExp("access_type=offline"));
     });
 
     it("includes the scope", function () {
       const url = this.client.generateAuthUrl(this.authURLConfig);
-      expect(url).to.contain("scope=email%20profile");
+      assert.match(url, new RegExp("scope=email%20profile"));
     });
 
     it("includes the prompt", function () {
       const url = this.client.generateAuthUrl(this.authURLConfig);
-      expect(url).to.contain("prompt=consent");
+      assert.match(url, new RegExp("prompt=consent"));
     });
 
     it("includes the client ID", function () {
       const url = this.client.generateAuthUrl(this.authURLConfig);
-      expect(url).to.contain("client_id=clientid");
+      assert.match(url, new RegExp("client_id=clientid"));
     });
 
     it("includes the redirect URL", function () {
       const url = this.client.generateAuthUrl(this.authURLConfig);
-      expect(url).to.contain(`redirect_uri=${encodeURIComponent("https://website.com")}`);
+      assert.match(url, new RegExp(`redirect_uri=${encodeURIComponent("https://website.com")}`));
     });
   });
 
@@ -79,21 +79,21 @@ describe("OAuth2Client", function () {
     });
 
     it("returns the tokens", function () {
-      expect(this.result).to.have.property("tokens");
-      expect(this.result.tokens).to.have.property("access_token", "at");
-      expect(this.result.tokens).to.have.property("refresh_token", "rt");
+      assert(this.result.tokens)
+      assert.equal('at', this.result.tokens.access_token)
+      assert.equal('rt', this.result.tokens.refresh_token)
     });
 
     it("emits an event with the tokens", function () {
-      expect(this.tokenStore.save.callCount).to.equal(1);
-      expect(this.tokenStore.save.firstCall.args[0]).to.have.property("access_token", "at");
-      expect(this.tokenStore.save.firstCall.args[0]).to.have.property("refresh_token", "rt");
+      assert.equal(1, this.tokenStore.save.callCount);
+      assert.equal('at', this.tokenStore.save.firstCall.args[0].access_token)
+      assert.equal('rt', this.tokenStore.save.firstCall.args[0].refresh_token)
     });
   });
 
   describe('redirectPort', function () {
     it('finds port in URL', function () {
-      expect(this.client.redirectPort).to.equal(9999)
+      assert.equal(9999, this.client.redirectPort)
     })
   })
 
@@ -109,7 +109,7 @@ describe("OAuth2Client", function () {
     it("encodes auth code", function () {
       const authCode = "4%2FY_x";
       this.client.exchangeAuthCodeForToken(authCode);
-      expect(this.client.fetcher.getCall(0).args[0].body).to.include(encodeURIComponent(authCode));
+      assert.match(this.client.fetcher.getCall(0).args[0].body, new RegExp(encodeURIComponent(authCode)));
     });
   })
 });

@@ -1,20 +1,19 @@
-import {expect, util} from "chai";
 import sinon from "sinon";
-import {isPending} from "./node";
-
+import {isPending} from "./node"
+import assert from "node:assert"
 
 
 
 describe('isPending', () => {
   specify('resolved returns false', () => {
-    expect(isPending(Promise.resolve())).to.equal(false)
+    assert.equal(false, isPending(Promise.resolve()))
   })
   specify('rejected returns false', () => {
-    expect(isPending(Promise.reject())).to.equal(false)
+    assert.equal(false, isPending(Promise.reject()))
   })
   specify('pending returns true', (done) => {
     const promise = new Promise(resolve => setTimeout(done, 100))
-    expect(isPending(promise)).to.equal(true)
+    assert.equal(true, isPending(promise))
   })
 })
 
