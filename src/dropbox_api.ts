@@ -4,9 +4,10 @@ import {TokenStore} from "./oauth2-client/TokenStore";
 import {OAuth2Client} from "./oauth2-client";
 import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
-import { Buffer } from 'node:buffer';
+import {Buffer} from 'node:buffer';
 import MediaInfoMetadata = files.MediaInfoMetadata;
 import {MimeType, pathToMimeType} from "./util/mime-type";
+import {makeRetryable} from "./util/makeRetryable";
 
 export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 
@@ -39,6 +40,13 @@ export async function oauthDropbox({
     clientId: clientId,
     clientSecret: clientSecret
   });
+
+  dropboxApi.filesDownload = makeRetryable(dropboxApi.filesDownload, {
+    retryable(count: number, e: any): boolean {
+      return count < 4 && ['ETIMEDOUT', 'ENETDOWN'].includes(e.code);
+    },
+    delay: 5000,
+  })
 }
 
 
@@ -75,7 +83,7 @@ export function selectFilesFromResult(result: files.ListFolderResult): Array<Dro
 }
 
 export async function downloadFile(path: string):
-  Promise<{ buffer: Buffer, mimeType: MimeType, dimensions: {width: number, height: number} }> {
+  Promise<{ buffer: Buffer, mimeType: MimeType, dimensions: { width: number, height: number } }> {
 
   const {result} = await dropboxApi.filesDownload({path})
   const buffer = (result as unknown as { fileBinary: Buffer }).fileBinary

@@ -36,7 +36,7 @@ class RetryableError extends Error {
   }
 }
 
-export function makeFetchWithRetry<F extends typeof fetch>(clientFetch: typeof fetch, opts: Options): typeof fetch {
+export function makeFetchWithStatusRetry<F extends typeof fetch>(clientFetch: typeof fetch, opts: Options): typeof fetch {
 
   return makeRetryable((url: RequestInfo, init?: RequestInit) => {
 
@@ -67,4 +67,22 @@ export function makeFetchWithRetry<F extends typeof fetch>(clientFetch: typeof f
         : 1000;
   }
 
+}
+
+
+/*
+Handle FetchError
+      reject(new FetchError(`request to ${request.url} failed, reason: ${err.message}`, 'system', err));
+  type: 'system',
+  errno: 'ETIMEDOUT',
+  code: 'ETIMEDOUT'
+}
+*/
+export function makeFetchWithTimeoutRetry<F extends typeof fetch>(clientFetch: typeof fetch): typeof fetch {
+  return makeRetryable(clientFetch, {
+    delay: 5000,
+    retryable(count: number, e: any): boolean {
+      return count < 4 && ['ETIMEDOUT', 'ENETDOWN'].includes(e.code)
+    }
+  })
 }

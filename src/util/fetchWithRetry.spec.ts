@@ -1,10 +1,10 @@
 import sinon from "sinon";
 import assert from "node:assert";
 import fetch from 'node-fetch'
-import {makeFetchWithRetry} from "./fetchWithRetry";
+import {makeFetchWithStatusRetry} from "./fetchWithRetry";
 
 
-describe('makeFetchWithRetry', () => {
+describe('makeFetchWithStatusRetry', () => {
 
   specify('happy path with no retry', async () => {
     const clientFetch = sinon.stub()
@@ -13,7 +13,7 @@ describe('makeFetchWithRetry', () => {
         status: 200, json: () => Promise.resolve('made it')
       }))
 
-    const fetchWithRetry = makeFetchWithRetry(clientFetch, {
+    const fetchWithRetry = makeFetchWithStatusRetry(clientFetch, {
       retryableStatusCodes: [409]
     })
 
@@ -30,7 +30,7 @@ describe('makeFetchWithRetry', () => {
         status: 404
       }))
 
-    const fetchWithRetry = makeFetchWithRetry(clientFetch, {
+    const fetchWithRetry = makeFetchWithStatusRetry(clientFetch, {
       retryableStatusCodes: [409],
       retries: 2,
       retryDelay: 20
@@ -51,7 +51,7 @@ describe('makeFetchWithRetry', () => {
         status: 200, json: () => Promise.resolve('made it')
       }))
 
-    const fetchWithRetry = makeFetchWithRetry(clientFetch, {
+    const fetchWithRetry = makeFetchWithStatusRetry(clientFetch, {
       retryableStatusCodes: [409],
       retryDelay: 20
     })
@@ -76,7 +76,7 @@ describe('makeFetchWithRetry', () => {
         status: 409
       }))
 
-    const fetchWithRetry = makeFetchWithRetry(clientFetch, {
+    const fetchWithRetry = makeFetchWithStatusRetry(clientFetch, {
       retryableStatusCodes: [409],
       retries: 2,
       retryDelay: 20

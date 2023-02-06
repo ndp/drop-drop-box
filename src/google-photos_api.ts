@@ -7,6 +7,7 @@ import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 import ReadableStream = NodeJS.ReadableStream;
 import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
 import {MimeType} from "./util/mime-type";
+import {makeFetchWithTimeoutRetry} from "./util/fetchWithRetry";
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -22,6 +23,7 @@ const SCOPE = [
 
 
 let authyFetch: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
+let authyFetchWithRetry: (url: RequestInfo, init?: RequestInit) => Promise<Response>;
 
 export async function oauthGoogle(
   options: { clientId: string, clientSecret: string, tokenStore?: TokenStore }) {
@@ -39,6 +41,7 @@ export async function oauthGoogle(
 
   // `authyFetch` is a global
   authyFetch = await preAuthedFetch(client, SCOPE);
+  authyFetchWithRetry = makeFetchWithTimeoutRetry(authyFetch)
 }
 
 export async function listAlbums() {
@@ -110,7 +113,7 @@ export async function createMediaItem(
       uploadToken: UploadToken
     }
 ) {
-  return authyFetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
+  return authyFetchWithRetry('https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate', {
     headers: {'Content-type': 'application/json'},
     method: 'POST',
     body: JSON.stringify({
