@@ -63,7 +63,45 @@ describe('makeRetryable', () => {
     assert.equal(0, spy.callCount)
   })
 
-  specify('preserves "this"')
+  specify('preserves "this" on initial call', async () => {
+    const api = {
+      doItRemotely: (a: number) => Promise.resolve(a + 1)
+    }
+    const spy = sinon.spy(api, 'doItRemotely')
+
+    api.doItRemotely = makeRetryable(api.doItRemotely, options)
+
+    const result = await api.doItRemotely(4)
+
+    assert.equal(result, 5)
+    assert.equal(spy.getCall(0).thisValue, api)
+  })
+
+  specify('preserves "this" on retry', () => {
+    const api = {
+      alwaysThrow: alwaysThrow
+    }
+    const spy = sinon.spy(api, 'alwaysThrow')
+
+    api.alwaysThrow = makeRetryable(
+      api.alwaysThrow,
+      {
+        retryable(count: number): boolean {
+          return count < 3;
+        }
+      })
+
+    try {
+      api.alwaysThrow()
+      assert.fail('should have throw exception')
+    } catch (e) {
+      assert.equal(spy.callCount, 3)
+      assert.equal(spy.getCall(0).thisValue, api)
+      assert.equal(spy.getCall(1).thisValue, api)
+      assert.equal(spy.getCall(2).thisValue, api)
+    }
+
+  })
 
   specify('throwing an exception calls `retryable`', () => {
     const retryableSpy = sinon.spy(options, 'retryable')

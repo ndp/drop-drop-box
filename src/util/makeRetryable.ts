@@ -31,31 +31,16 @@ interface MakeRetryableOptions {
  *    could implement exponential backoff ala `(c) => Math.pow(2, c) * 1000`
  *    or some other mechanism.
  */
-export function makeRetryable<A extends Array<unknown>, R = void>(targetFn: (...args: A) => R, options: MakeRetryableOptions): (...args: A) => R {
+export function makeRetryable<Th, A extends Array<unknown>, R = void>(targetFn: (this: Th, ...args: A) => R, options: MakeRetryableOptions): (...args: A) => R {
 
-  let retryCount = 0
+  return function (this: Th, ...args: A): R {
 
-  return function (...args: A): R {
+    let retryCount = 0
 
-    return callTargetFn()
+    const callTargetFn = (): R => {
 
-    function maybeRetry(e: any, itsAPromise: boolean) {
-      retryCount++
-      if (options.retryable(retryCount, e))
-        if (itsAPromise) {
-          const delay = typeof options.delay === 'function'
-            ? options.delay(retryCount, e)
-            : (options.delay || 0)
-          return sleep(delay).then(callTargetFn);
-        } else
-          return callTargetFn()
-      else
-        throw e
-    }
-
-    function callTargetFn(): R {
       try {
-        const result = targetFn(...args);
+        const result = targetFn.call(this,...args);
         if (isPromise(result)) {
           return result.catch((e) => maybeRetry(e, true)) as R
         } else {
@@ -65,7 +50,24 @@ export function makeRetryable<A extends Array<unknown>, R = void>(targetFn: (...
       } catch (e) {
         return maybeRetry(e, false) as R
       }
-    }
+
+      function maybeRetry(e: any, itsAPromise: boolean) {
+        retryCount++
+        if (options.retryable(retryCount, e))
+          if (itsAPromise) {
+            const delay = typeof options.delay === 'function'
+              ? options.delay(retryCount, e)
+              : (options.delay || 0)
+            return sleep(delay).then(callTargetFn);
+          } else
+            return callTargetFn()
+        else
+          throw e
+      }
+
+    };
+
+    return callTargetFn()
   }
 }
 
