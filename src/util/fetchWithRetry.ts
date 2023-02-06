@@ -10,6 +10,19 @@ https://www.chrisarmstrong.dev/posts/retry-timeout-and-cancel-with-fetch
 import {RequestInfo, RequestInit, Response} from "node-fetch";
 import {makeRetryable} from "./makeRetryable";
 
+
+export const RetryableStatusCodesDefault = [
+  408, // timeout
+  409, // conflict
+  429, // too many requests
+  500, // internal server error,
+  502, // Bad Gateway,
+  503, // Service Unavailable,
+  504, // Gateway Timeout,
+  599, // Network Connect Timeout Error.
+]
+
+
 // "standard" fetch
 declare function fetch(
   url: RequestInfo,
@@ -20,23 +33,25 @@ declare function fetch(
 /**
  * retries:              Maximum number of retries to use
  * retryableStatusCodes: Status codes to retry.
- *                       If none give, it will not retry all error responses.
+ *                       If none give, it will retry a predefined
+ *                       set of status codes, `RetryableStatusCodesDefault`.
+ *                       To not retry any status codes, pass `[]`.
  * retryDelay:           Milliseconds to wait before a retry, or
  *                       a function that returns msecs to wait
  */
 type Options = {
   retries?: number,
-  retryableStatusCodes: Array<number>,
+  retryableStatusCodes?: Array<number>,
   retryDelay?: number | ((nextRetryIndex: number, exception: any, response: Response) => number)
 }
 
 class RetryableError extends Error {
-  constructor(readonly response: Response) {
+  constructor(readonly response: Response | null, readonly exception?: any) {
     super('retryable')
   }
 }
 
-export function makeFetchWithStatusRetry<F extends typeof fetch>(clientFetch: typeof fetch, opts: Options): typeof fetch {
+export function makeFetchWithRetry<F extends typeof fetch>(clientFetch: typeof fetch, opts: Options): typeof fetch {
 
   return makeRetryable((url: RequestInfo, init?: RequestInit) => {
 
@@ -46,6 +61,9 @@ export function makeFetchWithStatusRetry<F extends typeof fetch>(clientFetch: ty
           return Promise.reject(new RetryableError(res))
         }
         return res
+      }, (e: any) => {
+        if (isNetworkError(e))
+          return Promise.reject(new RetryableError(null, e))
       }) as Promise<Response>
   }, {
     delay,
@@ -56,7 +74,7 @@ export function makeFetchWithStatusRetry<F extends typeof fetch>(clientFetch: ty
 
 
   function isRetryableStatusCode(status: number) {
-    return (opts.retryableStatusCodes ?? [status]).includes(status);
+    return (opts.retryableStatusCodes ?? RetryableStatusCodesDefault).includes(status);
   }
 
   function delay(count: number, e: any) {
@@ -69,20 +87,6 @@ export function makeFetchWithStatusRetry<F extends typeof fetch>(clientFetch: ty
 
 }
 
-
-/*
-Handle FetchError
-      reject(new FetchError(`request to ${request.url} failed, reason: ${err.message}`, 'system', err));
-  type: 'system',
-  errno: 'ETIMEDOUT',
-  code: 'ETIMEDOUT'
-}
-*/
-export function makeFetchWithTimeoutRetry<F extends typeof fetch>(clientFetch: typeof fetch): typeof fetch {
-  return makeRetryable(clientFetch, {
-    delay: 5000,
-    retryable(count: number, e: any): boolean {
-      return count < 4 && ['ETIMEDOUT', 'ENETDOWN'].includes(e.code)
-    }
-  })
+export function isNetworkError(e: any) {
+  return e && ['ETIMEDOUT', 'ENETDOWN', 'EPIPE'].includes(e.code)
 }

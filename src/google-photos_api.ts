@@ -7,7 +7,7 @@ import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
 import ReadableStream = NodeJS.ReadableStream;
 import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
 import {MimeType} from "./util/mime-type";
-import {makeFetchWithTimeoutRetry} from "./util/fetchWithRetry";
+import {makeFetchWithRetry} from "./util/fetchWithRetry";
 
 
 // was https://accounts.google.com/o/oauth2/auth
@@ -41,7 +41,10 @@ export async function oauthGoogle(
 
   // `authyFetch` is a global
   authyFetch = await preAuthedFetch(client, SCOPE);
-  authyFetchWithRetry = makeFetchWithTimeoutRetry(authyFetch)
+  authyFetchWithRetry = makeFetchWithRetry(authyFetch, {
+    retries: 5,
+    retryDelay: 6000
+  })
 }
 
 export async function listAlbums() {
