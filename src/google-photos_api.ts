@@ -66,7 +66,7 @@ export async function uploadMedia(
     mimeType
   }: { buffer: Buffer, mimeType: MimeType }
 ): Promise<UploadToken> {
-  return authyFetch('https://photoslibrary.googleapis.com/v1/uploads', {
+  return authyFetchWithRetry('https://photoslibrary.googleapis.com/v1/uploads', {
     method: 'POST',
     body: buffer,
     headers: {
