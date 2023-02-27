@@ -8,7 +8,7 @@ import {Buffer} from 'node:buffer';
 import MediaInfoMetadata = files.MediaInfoMetadata;
 import {MimeType, pathToMimeType} from "./util/mime-type";
 import {makeRetryable} from "./util/makeRetryable";
-import {isNetworkError} from "./util/fetchWithRetry";
+import {isNetworkError, RetryableStatusCodesDefault} from "./util/fetchWithRetry";
 
 export type DropboxFileImport = Pick<files.FileMetadataReference, ".tag" | "id" | "size" | "media_info" | "export_info" | "property_groups" | "has_explicit_shared_members" | "content_hash" | "file_lock_info" | "name" | "path_lower" | "preview_url">
 
@@ -45,6 +45,12 @@ export async function oauthDropbox({
   dropboxApi.filesDownload = makeRetryable(dropboxApi.filesDownload, {
     retryable(count: number, e: any): boolean {
       return count < 4 && isNetworkError(e);
+    },
+    delay: 5000,
+  })
+  dropboxApi.filesMoveV2 = makeRetryable(dropboxApi.filesMoveV2, {
+    retryable(count: number, e: any): boolean {
+      return count < 4 && (isNetworkError(e) || RetryableStatusCodesDefault.includes(e.status))
     },
     delay: 5000,
   })
