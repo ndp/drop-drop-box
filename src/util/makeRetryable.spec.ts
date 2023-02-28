@@ -1,13 +1,13 @@
 import sinon from "sinon";
 import {makeRetryable} from "./makeRetryable";
-import {isPending} from "./node";
+import {isNodePromisePending} from "./node";
 import {rejectNTimesThenResolve, throwNTimesThenReturn} from "./spec-helpers";
 import assert from "node:assert";
 
 
 describe('makeRetryable', () => {
 
-  const options = {retryable: (e: any) => false}
+  const options = {shouldRetry: (e: any) => false}
   const alwaysThrow = function () {
     throw 'an exception'
   }
@@ -37,9 +37,9 @@ describe('makeRetryable', () => {
     assert.equal('a', spy.getCall(0).args[1])
   })
 
-  specify('does not call `retryable` option if no error', () => {
+  specify('does not call `shouldRetry` option if no error', () => {
     const wrapped = makeRetryable(() => 'foo', options)
-    const spy = sinon.spy(options, 'retryable')
+    const spy = sinon.spy(options, 'shouldRetry')
 
     wrapped()
 
@@ -54,9 +54,9 @@ describe('makeRetryable', () => {
     assert.equal('foo', result)
   })
 
-  specify('does not call `retryable` option if promise resolves', async () => {
+  specify('does not call `shouldRetry` option if promise resolves', async () => {
     const wrapped = makeRetryable(async () => 'foo', options)
-    const spy = sinon.spy(options, 'retryable')
+    const spy = sinon.spy(options, 'shouldRetry')
 
     await wrapped()
 
@@ -86,7 +86,7 @@ describe('makeRetryable', () => {
     api.alwaysThrow = makeRetryable(
       api.alwaysThrow,
       {
-        retryable(count: number): boolean {
+        shouldRetry(count: number): boolean {
           return count < 3;
         }
       })
@@ -103,8 +103,8 @@ describe('makeRetryable', () => {
 
   })
 
-  specify('throwing an exception calls `retryable`', () => {
-    const retryableSpy = sinon.spy(options, 'retryable')
+  specify('throwing an exception calls `shouldRetry`', () => {
+    const retryableSpy = sinon.spy(options, 'shouldRetry')
     const wrapped = makeRetryable(alwaysThrow, options)
 
     try {
@@ -115,8 +115,8 @@ describe('makeRetryable', () => {
     }
   })
 
-  specify('rejecting a promise calls `retryable`', async () => {
-    const retryableSpy = sinon.spy(options, 'retryable')
+  specify('rejecting a promise calls `shouldRetry`', async () => {
+    const retryableSpy = sinon.spy(options, 'shouldRetry')
     const wrapped = makeRetryable(async () => Promise.reject('an exception'), options)
 
     try {
@@ -127,10 +127,10 @@ describe('makeRetryable', () => {
     }
   })
 
-  specify('throws exception if `retryable` says false', () => {
+  specify('throws exception if `shouldRetry` says false', () => {
     const wrapped = makeRetryable(alwaysThrow, {
       ...options,
-      retryable: () => false
+      shouldRetry: () => false
     })
 
     try {
@@ -141,10 +141,10 @@ describe('makeRetryable', () => {
     }
   })
 
-  specify('throws exception if `retryable` says Promise<false>', async () => {
+  specify('throws exception if `shouldRetry` returns Promise<false>', async () => {
     const wrapped = makeRetryable(alwaysThrow, {
       ...options,
-      retryable: () => Promise.resolve(false)
+      shouldRetry: () => Promise.resolve(false)
     })
 
     try {
@@ -155,10 +155,10 @@ describe('makeRetryable', () => {
     }
   })
 
-  specify('throws exception if `retryable` says Promise<false> for sync wrapped function', (done) => {
+  specify('throws exception if `shouldRetry` returns Promise<false> for sync wrapped function', (done) => {
     const wrapped = makeRetryable(alwaysThrow, {
       ...options,
-      retryable: () => Promise.resolve(false)
+      shouldRetry: () => Promise.resolve(false)
     })
 
     wrapped()
@@ -166,11 +166,11 @@ describe('makeRetryable', () => {
     setTimeout(done, 100)
   })
 
-  specify('calls again if `retryable` says true', () => {
+  specify('calls again if `shouldRetry` returns true', () => {
     const spy = sinon.spy(alwaysThrow)
     const wrapped = makeRetryable(spy, {
       ...options,
-      retryable: (count) => count === 1
+      shouldRetry: (count) => count === 1
     })
 
     try {
@@ -182,11 +182,11 @@ describe('makeRetryable', () => {
     }
   })
 
-  specify('calls again if `retryable` says Promise<true>', async () => {
+  specify('calls again if `shouldRetry` returns Promise<true>', async () => {
     const spy = sinon.spy(alwaysThrow)
     const wrapped = makeRetryable(spy, {
       ...options,
-      retryable: (count) => Promise.resolve(count === 1)
+      shouldRetry: (count) => Promise.resolve(count === 1)
     })
 
     try {
@@ -199,7 +199,7 @@ describe('makeRetryable', () => {
   })
 
 
-  specify('calls again if `retryable` says Promise<true> for sync wrapped function', (done) => {
+  specify('calls again if `shouldRetry` returns Promise<true> for sync wrapped function', (done) => {
     let count = 0
     const targetFn = () => {
       count++
@@ -208,7 +208,7 @@ describe('makeRetryable', () => {
     }
     const wrapped = makeRetryable(targetFn, {
       ...options,
-      retryable: (count) => Promise.resolve(count === 1)
+      shouldRetry: (count) => Promise.resolve(count === 1)
     })
 
     wrapped()
@@ -223,7 +223,7 @@ describe('makeRetryable', () => {
     const spy = sinon.spy(alwaysThrow)
     const wrapped = makeRetryable(spy, {
       ...options,
-      retryable: retryableSpy
+      shouldRetry: retryableSpy
     })
 
     try {
@@ -244,7 +244,7 @@ describe('makeRetryable', () => {
 
     const wrapped = makeRetryable(rejectNTimesThenResolve(3, 'foo', 'too soon'), {
       ...options,
-      retryable: retryableSpy
+      shouldRetry: retryableSpy
     })
 
     const result = await wrapped()
@@ -260,7 +260,7 @@ describe('makeRetryable', () => {
     const retryableSpy = sinon.spy(retrySome)
 
     const wrapped = makeRetryable(
-      rejectNTimesThenResolve(10, 'foo', 'too soon'), {...options, retryable: retryableSpy})
+      rejectNTimesThenResolve(10, 'foo', 'too soon'), {...options, shouldRetry: retryableSpy})
 
     const result = wrapped() as Promise<string>
 
@@ -282,7 +282,7 @@ describe('makeRetryable', () => {
     const wrapped = makeRetryable(rejectNTimesThenResolve(999, 'foo', 'too soon'), {
       ...options,
       delay: 0,
-      retryable: retryableSpy
+      shouldRetry: retryableSpy
     })
 
     const result = await wrapped()
@@ -295,7 +295,7 @@ describe('makeRetryable', () => {
     const retrySome = function (count: number) {
       return count < 2
     }
-    const wrapped = makeRetryable(throwNTimesThenReturn(1, 'a', 'throw me'), {...options, retryable: retrySome})
+    const wrapped = makeRetryable(throwNTimesThenReturn(1, 'a', 'throw me'), {...options, shouldRetry: retrySome})
 
     assert.deepEqual(['a', 'a', 'a', 'a', 'a'], [wrapped(), wrapped(), wrapped(), wrapped(), wrapped()])
   })
@@ -305,7 +305,7 @@ describe('makeRetryable', () => {
       const wrapped = makeRetryable(() => 'foo', {...options, delay: 1000})
 
 
-      assert.throws(wrapped, /`delay` is not supported for synchronous functions/)
+      assert.throws(wrapped, /`delay` is not supported for sync functions/)
     }
   )
 
@@ -316,17 +316,17 @@ describe('makeRetryable', () => {
     const wrapped = makeRetryable(
       rejectNTimesThenResolve(1, 'zesh', 'too soon'), {
         ...options,
-        retryable: () => true,
+        shouldRetry: () => true,
         delay: 150
       })
 
     const promise = wrapped()
 
     await clock.tickAsync(100)
-    assert.equal(true, isPending(promise))
+    assert.equal(true, isNodePromisePending(promise))
 
     await clock.tickAsync(100)
-    assert.equal(false, isPending(promise))
+    assert.equal(false, isNodePromisePending(promise))
 
     assert.equal('zesh', await promise)
   })

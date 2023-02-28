@@ -1,6 +1,5 @@
 import sinon from "sinon";
 import assert from "node:assert";
-import fetch from 'node-fetch'
 import {makeFetchWithRetry} from "./fetchWithRetry";
 
 

@@ -67,7 +67,7 @@ export function makeFetchWithRetry<F extends typeof fetch>(clientFetch: typeof f
       }) as Promise<Response>
   }, {
     delay,
-    retryable: (count: number, exception: any) =>
+    shouldRetry: (count: number, exception: any) =>
       count <= (opts.retries ?? 3)
       && exception.message === 'retryable'
   })
