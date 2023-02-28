@@ -1,6 +1,5 @@
 import sinon from "sinon";
 import {makeRetryable} from "./makeRetryable";
-import {isNodePromisePending} from "./node";
 import {rejectNTimesThenResolve, throwNTimesThenReturn} from "./spec-helpers";
 import assert from "node:assert";
 
@@ -320,13 +319,15 @@ describe('makeRetryable', () => {
         delay: 150
       })
 
-    const promise = wrapped()
+    let state: 'pending'|'resolved' = 'pending'
+
+    const promise = wrapped().then(r => { state='resolved'; return r})
 
     await clock.tickAsync(100)
-    assert.equal(true, isNodePromisePending(promise))
+    assert.equal('pending', state)
 
     await clock.tickAsync(100)
-    assert.equal(false, isNodePromisePending(promise))
+    assert.equal('resolved', state)
 
     assert.equal('zesh', await promise)
   })
