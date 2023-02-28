@@ -1,4 +1,4 @@
-import {Dropbox, files} from 'dropbox'
+import {Dropbox, DropboxResponse, DropboxResponseError, files} from 'dropbox'
 import FileMetadataReference = files.FileMetadataReference;
 import {TokenStore} from "./oauth2-client/TokenStore";
 import {OAuth2Client} from "./oauth2-client";
@@ -43,14 +43,21 @@ export async function oauthDropbox({
   });
 
   dropboxApi.filesDownload = makeRetryable(dropboxApi.filesDownload, {
-    retryable(count: number, e: any): boolean {
-      return count < 4 && isNetworkError(e);
+    async retryable(count: number, e: DropboxResponse<files.FileMetadata>): Promise<boolean> {
+      if (count >= 4) return false
+      if (e.status === 401)
+        await client.refreshAccessToken()
+      return isNetworkError(e);
     },
     delay: 5000,
   })
+  // TODO Re-auth
   dropboxApi.filesMoveV2 = makeRetryable(dropboxApi.filesMoveV2, {
-    retryable(count: number, e: any): boolean {
-      return count < 4 && (isNetworkError(e) || RetryableStatusCodesDefault.includes(e.status))
+    retryable: async (count: number, e: DropboxResponseError<files.RelocationResult>): Promise<boolean> => {
+      if (count >= 4) return false
+      if (e.status === 401)
+        await client.refreshAccessToken()
+      return (isNetworkError(e) || RetryableStatusCodesDefault.includes(e.status))
     },
     delay: 5000,
   })
