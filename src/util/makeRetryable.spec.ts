@@ -141,6 +141,31 @@ describe('makeRetryable', () => {
     }
   })
 
+  specify('throws exception if `retryable` says Promise<false>', async () => {
+    const wrapped = makeRetryable(alwaysThrow, {
+      ...options,
+      retryable: () => Promise.resolve(false)
+    })
+
+    try {
+      await wrapped()
+      throw 'should not reach here'
+    } catch (e) {
+      assert.equal('an exception', e)
+    }
+  })
+
+  specify('throws exception if `retryable` says Promise<false> for sync wrapped function', (done) => {
+    const wrapped = makeRetryable(alwaysThrow, {
+      ...options,
+      retryable: () => Promise.resolve(false)
+    })
+
+    wrapped()
+
+    setTimeout(done, 100)
+  })
+
   specify('calls again if `retryable` says true', () => {
     const spy = sinon.spy(alwaysThrow)
     const wrapped = makeRetryable(spy, {
@@ -155,6 +180,38 @@ describe('makeRetryable', () => {
       assert.equal(2, spy.callCount)
       assert.equal('an exception', e)
     }
+  })
+
+  specify('calls again if `retryable` says Promise<true>', async () => {
+    const spy = sinon.spy(alwaysThrow)
+    const wrapped = makeRetryable(spy, {
+      ...options,
+      retryable: (count) => Promise.resolve(count === 1)
+    })
+
+    try {
+      await wrapped()
+      throw 'should not reach here'
+    } catch (e) {
+      assert.equal(2, spy.callCount)
+      assert.equal('an exception', e)
+    }
+  })
+
+
+  specify('calls again if `retryable` says Promise<true> for sync wrapped function', (done) => {
+    let count = 0
+    const targetFn = () => {
+      count++
+      if (count === 1) throw 'an exception1'
+      done()
+    }
+    const wrapped = makeRetryable(targetFn, {
+      ...options,
+      retryable: (count) => Promise.resolve(count === 1)
+    })
+
+    wrapped()
   })
 
 

@@ -7,7 +7,7 @@ and, if you want, the exception that was thrown.
 type MakeRetryableParams = [count: number, exceptionThrown: any]
 
 interface MakeRetryableOptions {
-  retryable: (...args: MakeRetryableParams) => boolean,
+  retryable: (...args: MakeRetryableParams) => boolean | Promise<boolean>,
   delay?: number | ((...args: MakeRetryableParams) => number)
 }
 
@@ -26,6 +26,10 @@ interface MakeRetryableOptions {
  *    choice might be some sort of retry limit such as `(c) => c < 5`, or
  *    based on a specific exception, such as `(c,e) => e.status === 503`.
  *
+ *    Although this function is basically function asking for true/false,
+ *    it would be possible to execute other logic, including side effects.
+ *    This could be any sort of logic to prepare for a retry.
+ *
  * -  `delay` is how long to wait before retrying. By default this is no delay,
  *    but you can provide a number (of milliseconds), or a function, which
  *    could implement exponential backoff ala `(c) => Math.pow(2, c) * 1000`
@@ -40,7 +44,7 @@ export function makeRetryable<Th, A extends Array<unknown>, R = void>(targetFn: 
     const callTargetFn = (): R => {
 
       try {
-        const result = targetFn.call(this,...args);
+        const result = targetFn.call(this, ...args);
         if (isPromise(result)) {
           return result.catch((e) => maybeRetry(e, true)) as R
         } else {
@@ -53,16 +57,28 @@ export function makeRetryable<Th, A extends Array<unknown>, R = void>(targetFn: 
 
       function maybeRetry(e: any, itsAPromise: boolean) {
         retryCount++
-        if (options.retryable(retryCount, e))
-          if (itsAPromise) {
-            const delay = typeof options.delay === 'function'
-              ? options.delay(retryCount, e)
-              : (options.delay || 0)
-            return sleep(delay).then(callTargetFn);
-          } else
-            return callTargetFn()
-        else
-          throw e
+        const isRetryable = options.retryable(retryCount, e);
+        if (isPromise(isRetryable)) {
+          return isRetryable.then((r => {
+            return doRetry(r);
+          }))
+        } else {
+          return doRetry(isRetryable);
+        }
+
+        function doRetry(isRetryable: boolean) {
+          if (isRetryable)
+            if (itsAPromise) {
+              const delay = typeof options.delay === 'function'
+                ? options.delay(retryCount, e)
+                : (options.delay || 0)
+              return sleep(delay).then(callTargetFn);
+            } else
+              return callTargetFn()
+          else
+            throw e
+        }
+
       }
 
     };
