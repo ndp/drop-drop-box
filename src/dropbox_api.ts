@@ -43,22 +43,24 @@ export async function oauthDropbox({
   });
 
   dropboxApi.filesDownload = makeRetryable(dropboxApi.filesDownload, {
-    async shouldRetry(count: number, e: DropboxResponse<files.FileMetadata>): Promise<boolean> {
-      if (count >= 4) return false
-      if (e.status === 401)
-        await client.refreshAccessToken()
-      return isNetworkError(e);
-    },
+    shouldRetry:
+      async function (count: number, e: DropboxResponse<files.FileMetadata>): Promise<boolean> {
+        if (count >= 4) return false
+        if (e.status === 401)
+          await client.refreshAccessToken()
+        return isNetworkError(e);
+      },
     delay: 5000,
   })
   // TODO Re-auth
   dropboxApi.filesMoveV2 = makeRetryable(dropboxApi.filesMoveV2, {
-    shouldRetry: async (count: number, e: DropboxResponseError<files.RelocationResult>): Promise<boolean> => {
-      if (count >= 4) return false
-      if (e.status === 401)
-        await client.refreshAccessToken()
-      return (isNetworkError(e) || RetryableStatusCodesDefault.includes(e.status))
-    },
+    shouldRetry:
+      async (count: number, e: DropboxResponseError<files.RelocationResult>): Promise<boolean> => {
+        if (count >= 4) return false
+        if (e.status === 401)
+          await client.refreshAccessToken()
+        return (isNetworkError(e) || RetryableStatusCodesDefault.includes(e.status))
+      },
     delay: 5000,
   })
 }

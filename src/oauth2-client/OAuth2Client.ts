@@ -161,22 +161,13 @@ export class OAuth2Client {
       client_secret: this._clientSecret,
       grant_type: "refresh_token"
     };
-    /*
-    curl https://api.dropbox.com/oauth2/token \
-    -d grant_type=refresh_token \
-    -d refresh_token=<REFRESH_TOKEN> \
-    -u <APP_KEY>:<APP_SECRET>
-
-     */
     const res = await this.fetcher({
-      //url: this.userAuthBaseUrl,
       url: this.tokenUrl,
       method: "POST",
       body: buildQueryString(data),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
-      },
-      validateStatus: () => true
+      }
     });
     const {data: tokens, status, statusText} = res;
     if (status >= 400 || status < 200) {
