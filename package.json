@@ -41,7 +41,7 @@
     "commander": "*",
     "dotenv": "*",
     "dropbox": "*",
-    "eslint": "^8.32.0",
+    "eslint": "^8.38.0",
     "figlet": "*",
     "image-to-ascii": "^3.0.13",
     "log-update": "^5.0.1",
