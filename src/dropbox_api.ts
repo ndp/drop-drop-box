@@ -1,9 +1,11 @@
 import {Dropbox, DropboxResponse, DropboxResponseError, files} from 'dropbox'
 import FileMetadataReference = files.FileMetadataReference;
-import {TokenStore} from "./oauth2-client/TokenStore";
-import {OAuth2Client} from "./oauth2-client";
-import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
-import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
+import {
+  OAuth2Client,
+  TokenStore,
+  ProviderUrlsSupported,
+  obtainBearerToken
+} from "./oauth2-client";
 import {Buffer} from 'node:buffer';
 import MediaInfoMetadata = files.MediaInfoMetadata;
 import {MimeType, pathToMimeType} from "./util/mime-type";
@@ -25,6 +27,7 @@ export async function oauthDropbox({
 }): Promise<void> {
 
   const client = new OAuth2Client({
+      providerKey: 'Dropbox',
       clientId,
       clientSecret,
       tokenStore,
@@ -46,8 +49,10 @@ export async function oauthDropbox({
     shouldRetry:
       async function (count: number, e: DropboxResponse<files.FileMetadata>): Promise<boolean> {
         if (count >= 4) return false
-        if (e.status === 401)
+        if (e.status === 401) {
           await client.refreshAccessToken()
+          return true
+        }
         return isNetworkError(e);
       },
     delay: 5000,
@@ -57,8 +62,10 @@ export async function oauthDropbox({
     shouldRetry:
       async (count: number, e: DropboxResponseError<files.RelocationResult>): Promise<boolean> => {
         if (count >= 4) return false
-        if (e.status === 401)
+        if (e.status === 401) {
           await client.refreshAccessToken()
+          return true
+        }
         return (isNetworkError(e) || RetryableStatusCodesDefault.includes(e.status))
       },
     delay: 5000,
@@ -86,13 +93,21 @@ export function selectFilesFromResult(result: files.ListFolderResult): Array<Dro
       .filter(f => f['.tag'] === 'file') as FileMetadataReference[])
     .filter(f => f.is_downloadable)
     .map(({
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             client_modified,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             is_downloadable,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             path_display,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             parent_shared_folder_id,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             rev,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             server_modified,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             sharing_info,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             symlink_info,
             ...rest
           }) => rest)

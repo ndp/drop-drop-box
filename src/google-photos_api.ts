@@ -1,11 +1,12 @@
 import {RequestInfo, RequestInit, Response} from 'node-fetch'
-import {TokenStore} from './oauth2-client/TokenStore';
+import {TokenStore} from './oauth2-client';
 import {preAuthedFetch} from "./oauth2-client/preAuthedFetch";
-import {OAuth2Client} from "./oauth2-client";
-import {InMemoryTokenStore} from "./oauth2-client/TokenStore/InMemoryTokenStore";
-import {ProviderUrlsSupported} from "./oauth2-client/ProviderUrlsSupported";
-import ReadableStream = NodeJS.ReadableStream;
-import {obtainBearerToken} from "./oauth2-client/obtainBearerToken";
+import {
+  OAuth2Client,
+  InMemoryTokenStore,
+  obtainBearerToken,
+  ProviderUrlsSupported
+} from "./oauth2-client";
 import {MimeType} from "./util/mime-type";
 import {makeFetchWithRetry} from "./util/fetchWithRetry";
 
@@ -29,6 +30,7 @@ export async function oauthGoogle(
   options: { clientId: string, clientSecret: string, tokenStore?: TokenStore }) {
 
   const client = new OAuth2Client({
+      providerKey: 'Google',
       clientId: options.clientId,
       clientSecret: options.clientSecret,
       redirectUrl: `http://localhost:9999/callback`,
@@ -47,16 +49,16 @@ export async function oauthGoogle(
   })
 }
 
-export async function listAlbums() {
-  const response = await authyFetch(
-    'https://photoslibrary.googleapis.com/v1/albums')
-  return await response.json()
-}
-
-export async function listMediaItems() {
-  return authyFetch('https://photoslibrary.googleapis.com/v1/mediaItems')
-    .then(response => response.json())
-}
+// export async function listAlbums() {
+//   const response = await authyFetch(
+//     'https://photoslibrary.googleapis.com/v1/albums')
+//   return await response.json()
+// }
+//
+// export async function listMediaItems() {
+//   return authyFetch('https://photoslibrary.googleapis.com/v1/mediaItems')
+//     .then(response => response.json())
+// }
 
 type UploadToken = string
 

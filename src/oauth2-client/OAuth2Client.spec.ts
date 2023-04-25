@@ -10,6 +10,7 @@ describe("OAuth2Client", function () {
   beforeEach(function () {
     this.tokenStore = new InMemoryTokenStore();
     this.client = new OAuth2Client({
+        providerKey: 'Dropbox',
         clientId: "clientid",
         clientSecret: "clientsecret",
         redirectUrl: "https://website.com:9999/callback",

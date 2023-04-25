@@ -28,7 +28,7 @@ import {
   updateDropboxItemStatus
 } from "./db/dropbox_items";
 import {SqliteTokenStore} from "./oauth2-client/TokenStore/SqliteTokenStore";
-import {TokenStore} from "./oauth2-client/TokenStore";
+import {TokenStore} from "./oauth2-client";
 import {getLastAlbumId, saveAlbum} from "./db/google_albums";
 import * as fs from "fs";
 import {lpad} from "./util/string";
@@ -50,7 +50,7 @@ async function logTransferStatus(status: string,
     return
   }
 
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<void>((resolve) => {
     imageToAscii(localImagePath, {
       size: {height: 40},
       bg: false,
@@ -206,8 +206,8 @@ const transferCmd = new Command('transfer')
           fileName: item.path_lower,
           uploadToken: uploadToken
         })
-        await markTransferredOnDropbox(item.path_lower)
         await updateDropboxItemStatus(db, dbId, 'TRANSFERRED')
+        await markTransferredOnDropbox(item.path_lower)
 
         await logTransferStatus('SUCCESS', item, fileName, downloadInfo.dimensions)
 
@@ -234,7 +234,6 @@ export const add = new Command('add')
 
     for (const path of paths)
       await insertSearchPath(db, decodeURIComponent(path))
-//    await insertSearchPath(db, '/Tanyandy/Photos/2011/Originals/2011/Mar 29, 2011')
   })
 export const folders = new Command('folders')
   .description('Show Dropbox folders queued for migration')
@@ -304,7 +303,6 @@ const command = new Command('drop-drop-box')
 command
   .description("CLI for transferring images from Dropbox to Google Photos")
   .option('-db, --database <db>', 'SQLLite3 database path', './dropbox-db.sqlite3')
-  // .option('-V, --verbose', 'Lotsa logging', false)
   .addCommand(statsCmd)
   .addCommand(folders)
 

@@ -1,13 +1,12 @@
 import fetch from 'node-fetch'
 import {
-  ERR_REFRESH_FAILED,
-} from "./symbols";
-import {
   TokenRecord, TokenResponse
 } from "./types";
 import {TokenStore} from './TokenStore'
-import {ProviderUrls} from "./ProviderUrlsSupported";
+import {ProviderKey, ProviderUrls} from "./ProviderUrlsSupported";
 import {buildQueryString} from "../util/string";
+
+export const ERR_REFRESH_FAILED = "err/refresh/failed";
 
 
 // How much time do we need left on the refresh token before
@@ -23,8 +22,10 @@ export class OAuth2Client {
   public tokenStore: TokenStore
   private tokenUrl: string;
   private userAuthBaseUrl: string;
+  readonly providerKey: ProviderKey;
 
   constructor(options: {
+                providerKey: ProviderKey,
                 clientId: string,
                 clientSecret: string,
                 redirectUrl: string,
@@ -32,6 +33,7 @@ export class OAuth2Client {
                 providerUrls: ProviderUrls
               }
   ) {
+    this.providerKey = options.providerKey
     this._clientID = options.clientId
     this._clientSecret = options.clientSecret
     this._redirectURL = options.redirectUrl
